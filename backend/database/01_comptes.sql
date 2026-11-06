@@ -8,16 +8,12 @@ CREATE TABLE users (
     nom_complet VARCHAR(150) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     telephone VARCHAR(20) UNIQUE,
-    mot_de_passe VARCHAR(255),
+    mot_de_passe VARCHAR(255) NOT NULL,
     date_naissance DATE,
     role VARCHAR(30) NOT NULL
-        CHECK (role IN ('patient', 'proche', 'medecin', 'pharmacien', 'etudiant_medecine', 'autre')),
-    auth_provider VARCHAR(20) NOT NULL DEFAULT 'local'
-        CHECK (auth_provider IN ('local', 'google', 'facebook')),
+        CHECK (role IN ('patient', 'medecin')),
     photo VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- un compte classique doit avoir un mot de passe
-    CHECK (auth_provider <> 'local' OR mot_de_passe IS NOT NULL)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. Informations du patient (écran "Ajouter des informations")
@@ -30,7 +26,7 @@ CREATE TABLE patients (
         CHECK (groupe_sanguin IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
 );
 
--- 3. Professionnels de santé (médecin, pharmacien, étudiant en médecine)
+-- 3. Professionnels de santé (médecins)
 CREATE TABLE professionnels (
     user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     specialite VARCHAR(100),
@@ -41,16 +37,7 @@ CREATE TABLE professionnels (
     longitude NUMERIC(9,6)
 );
 
--- 4. Lien proche <-> patient
-CREATE TABLE proches_patients (
-    id SERIAL PRIMARY KEY,
-    proche_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    patient_id INT NOT NULL REFERENCES patients(user_id) ON DELETE CASCADE,
-    lien VARCHAR(50),
-    UNIQUE (proche_id, patient_id)
-);
-
--- 5. Médecin qui suit un patient (et accès autorisé à son dossier)
+-- 4. Médecin qui suit un patient (et accès autorisé à son dossier)
 CREATE TABLE suivi_medical (
     id SERIAL PRIMARY KEY,
     medecin_id INT NOT NULL REFERENCES professionnels(user_id) ON DELETE CASCADE,

@@ -36,23 +36,18 @@ CREATE TABLE prises_medicament (
     heure_prise TIMESTAMP
 );
 
--- 4. Rendez-vous médicaux (présentiel ou vidéo Jitsi)
+-- 4. Rendez-vous médicaux
 CREATE TABLE rendez_vous (
     id SERIAL PRIMARY KEY,
     patient_id INT NOT NULL REFERENCES patients(user_id) ON DELETE CASCADE,
     medecin_id INT REFERENCES professionnels(user_id) ON DELETE SET NULL,
     date_heure TIMESTAMP NOT NULL,
-    type VARCHAR(15) NOT NULL DEFAULT 'presentiel'
-        CHECK (type IN ('presentiel', 'video')),
-    lien_video VARCHAR(255),
     lieu VARCHAR(255),
     motif TEXT,
     statut VARCHAR(15) NOT NULL DEFAULT 'planifie'
         CHECK (statut IN ('planifie', 'termine', 'annule')),
     rappel_minutes INT DEFAULT 60,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- un RDV vidéo doit avoir son lien
-    CHECK (type <> 'video' OR lien_video IS NOT NULL)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. Analyses de laboratoire

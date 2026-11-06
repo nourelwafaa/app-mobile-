@@ -1,12 +1,9 @@
-
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
 const db = require("./config/db");
-
-console.log("Type password serveur :", typeof db.options.password);
-console.log("Password serveur présent :", !!db.options.password);
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -34,6 +31,9 @@ app.get("/api/test-db", async (req, res) => {
         });
     }
 });
+
+// Routes d'authentification
+app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 3001;
 
