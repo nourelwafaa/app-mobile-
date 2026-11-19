@@ -33,4 +33,30 @@ class AppStrings {
 
     // Errors
   static const String erreurChargement = 'Impossible de charger les données';
+
+    // Profile page
+  static const String monProfil = 'Mon profil';
+  static const String roleMedecin = 'Médecin';
+  static const String specialite = 'Spécialité';
+  static const String etablissement = 'Établissement';
+  static const String adresse = 'Adresse';
+  static const String email = 'Email';
+  static const String telephone = 'Téléphone';
+  static const String nonRenseigne = 'Non renseigné';
+  static const String modifierProfil = 'Modifier mon profil';
+  static const String seDeconnecter = 'Se déconnecter';
+
+  // Logout popup
+  static const String deconnexionMessage = 'Voulez-vous vous déconnecter ?';
+  static const String annuler = 'Annuler';
+
+  // Edit profile page
+  static const String nomComplet = 'Nom complet';
+  static const String ville = 'Ville';
+  static const String enregistrer = 'Enregistrer';
+  static const String champObligatoire = 'Ce champ est obligatoire';
+  static const String numeroInvalide = 'Numéro invalide';
+  // Double quotes because of the apostrophe.
+  static const String emailNonModifiable = "L'email ne peut pas être modifié";
+  static const String profilMisAJour = 'Profil mis à jour';
 }

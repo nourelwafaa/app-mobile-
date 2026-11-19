@@ -6,6 +6,8 @@ import 'package:lupus_plus/features/medecin/home/widgets/patient_tile.dart';
 import 'package:lupus_plus/features/medecin/home/widgets/stat_card.dart';
 import 'package:lupus_plus/models/home_data.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
 
 // The doctor's home page.
 // It is a StatefulWidget because it loads data once when it opens.
@@ -27,7 +29,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Start loading ONCE, when the page opens.
     // (Doing it inside build() would reload the data at every redraw.)
-    _futureData = _service.getHomeData();
+    // The logged-in account (this page only exists when someone is logged in).
+    final user = context.read<AuthProvider>().user!;
+    _futureData = _service.getHomeData(user);
   }
 
   @override

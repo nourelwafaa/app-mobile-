@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Color(0xFF......) = opaque color, the 6 digits are the hex code without "#".
 class AppColors {
   // Main colors
-  static const Color primary = Color(0xFF6B3590); // main purple (titles, links)
+  static const Color primary = Color(0xFF6A2C8E); // main purple (measured) // main purple (titles, links)
   static const Color accent = Color(0xFF883FBC);  // center "+" button
 
   // Backgrounds
@@ -29,4 +29,11 @@ class AppColors {
   // Texts
   static const Color textDark = Color(0xFF2B1B3F); // numbers and names
   static const Color textGrey = Color(0xFF7A7285); // small labels
+
+  // Profile page
+  static const Color card = Color(0xFFFFFFFF);       // white card
+  static const Color iconSquare = Color(0xFFEFE5F7); // square behind icons + divider lines
+  static const Color nameText = Color(0xFF4B1D66);   // doctor's name
+  static const Color danger = Color(0xFFB42318);     // red "Se déconnecter"
+  static const Color dangerLight = Color(0xFFE0665C); // light red (email note)
 }

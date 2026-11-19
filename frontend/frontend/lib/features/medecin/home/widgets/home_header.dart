@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
-
+import 'package:lupus_plus/core/utils/name_utils.dart';
 // Top of the home page: logo, app name, avatar and greeting.
 class HomeHeader extends StatelessWidget {
   final String nomMedecin; // e.g. "Dr. Martin"
@@ -48,7 +48,7 @@ class HomeHeader extends StatelessWidget {
         const SizedBox(height: 20),
         // Line 2: "Bonjour Dr. Martin 👋"
         Text(
-          '${AppStrings.bonjour} $nomMedecin 👋',
+          '${AppStrings.bonjour} ${nomAvecTitre(nomMedecin)} 👋',
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
