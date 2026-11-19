@@ -6,7 +6,7 @@ import '../models/models.dart';
 
 /// true  = mode démo : aucun serveur nécessaire, tout est simulé
 /// false = vraie connexion au backend Node.js
-const bool kDemoMode = true;
+const bool kDemoMode = false;
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
