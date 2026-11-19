@@ -59,4 +59,24 @@ class AppStrings {
   // Double quotes because of the apostrophe.
   static const String emailNonModifiable = "L'email ne peut pas être modifié";
   static const String profilMisAJour = 'Profil mis à jour';
+
+  // Agenda
+  static const String nouveauRendezVous = '+ Nouveau rendez-vous';
+  static const String rendezVous = 'rendez-vous';
+  static const String aucunRdv = 'Aucun rendez-vous ce jour';
+  static const String statutPlanifie = 'Planifié';
+  static const String statutTermine = 'Terminé';
+  static const String statutAnnule = 'Annulé';
+  static const String marquerTermine = 'Marquer comme terminé';
+  static const String annulerRdv = 'Annuler le rendez-vous';
+  static const String rdvAjoute = 'Rendez-vous ajouté';
+
+  // New appointment page
+  static const String nouveauRdvTitre = 'Nouveau rendez-vous';
+  static const String patient = 'Patient';
+  static const String date = 'Date';
+  static const String heure = 'Heure';
+  static const String lieu = 'Lieu';
+  static const String motif = 'Motif';
+  static const String ajouter = 'Ajouter';
 }

@@ -4,6 +4,8 @@ import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/features/medecin/home/home_page.dart';
 import 'package:lupus_plus/features/medecin/shell/placeholder_page.dart';
 import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
+import 'package:lupus_plus/features/medecin/agenda/agenda_page.dart';
+
 // The doctor's main screen: the current tab + the bottom bar.
 class MedecinShell extends StatefulWidget {
   const MedecinShell({super.key});
@@ -20,7 +22,7 @@ class _MedecinShellState extends State<MedecinShell> {
   final List<Widget> _pages = const [
     HomePage(),
     PlaceholderPage(title: AppStrings.navPatients),
-    PlaceholderPage(title: AppStrings.navAgenda),
+    AgendaPage(),
     ProfilePage(),
   ];
 

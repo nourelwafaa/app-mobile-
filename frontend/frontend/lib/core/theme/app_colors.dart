@@ -36,4 +36,9 @@ class AppColors {
   static const Color nameText = Color(0xFF4B1D66);   // doctor's name
   static const Color danger = Color(0xFFB42318);     // red "Se déconnecter"
   static const Color dangerLight = Color(0xFFE0665C); // light red (email note)
+
+  // Agenda
+  static const Color successBg = Color(0xFFE3F5EC);   // "Terminé" chip background
+  static const Color successText = Color(0xFF1E7B4A); // "Terminé" chip text
+  static const Color dangerBg = Color(0xFFFDE5E3);    // "Annulé" chip background
 }
