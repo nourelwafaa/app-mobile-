@@ -109,3 +109,43 @@ Sert pour : la page Profil et « Bonjour Sarah » sur l'accueil. L'âge est calc
 
 Réponse **200** : `"message": "Informations enregistrées"` + `infos`
 Erreur : **400** (valeur invalide)
+
+## 5. Suivi du jour
+
+`POST /api/patients/me/suivi` — token obligatoire, rôle patient
+
+```json
+{
+  "douleur": 6,
+  "fatigue": 7,
+  "humeur": 5,
+  "sommeil_heures": 7.5,
+  "remarque": "Un peu fatiguée",
+  "symptomes": ["Douleurs articulaires", "Fatigue"]
+}
+```
+
+- `douleur`, `fatigue`, `humeur` : obligatoires, de 0 à 10
+- Un seul suivi par jour : renvoyer remplace celui du jour
+- Douleur ≥ 8 → une alerte est créée pour le médecin
+
+Réponse **201** : `"message": "Suivi enregistré"` + `suivi`
+
+`GET /api/patients/me/suivi/aujourdhui` → `{ "suivi": {...} }` ou `{ "suivi": null }` si pas encore fait aujourd'hui (pour pré-remplir l'écran)
+
+## 6. Statistiques
+
+`GET /api/patients/me/stats?periode=7` (ou 30, 90) — token obligatoire, rôle patient
+
+```json
+{
+  "periode": 7,
+  "jours": [{ "date": "2026-11-19", "douleur": 9, "fatigue": 7, "humeur": 4, "sommeil_heures": 6 }],
+  "moyennes": { "douleur": 9, "fatigue": 7, "humeur": 4, "sommeil_heures": 6, "jours_remplis": 1 },
+  "symptome_frequent": { "nom": "Douleurs articulaires", "jours": 1 },
+  "tendance_fatigue": { "actuelle": 7, "precedente": null, "evolution": null }
+}
+```
+
+- `jours` : une ligne par jour de la période, valeurs à `null` si pas de suivi ce jour-là
+- `evolution` : `baisse`, `hausse`, `stable`, ou `null` s'il n'y a pas assez de données
