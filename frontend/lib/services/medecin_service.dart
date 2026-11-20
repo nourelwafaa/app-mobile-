@@ -6,7 +6,8 @@ import '../models/rendez_vous.dart';
 import 'package:flutter/foundation.dart';
 import '../models/document_medical.dart';
 import '../models/traitement.dart';
-
+import '../models/conversation.dart';
+import '../models/message.dart';
 
 // Gives the data to the screens.
 // For now the data is FAKE. When the backend is ready, only the inside of
@@ -17,6 +18,97 @@ class MedecinService {
   static final ValueNotifier<int> rdvChanged = ValueNotifier<int>(0);
   // The doctor's profile, kept in memory for the whole app session.
   // "static" = one single copy shared by the whole app.
+  // Incremented each time a message is sent or read, so the lists reload.
+  static final ValueNotifier<int> messagesChanged = ValueNotifier<int>(0);
+
+  // Messages by patient id, oldest first (fake data).
+  static final Map<int, List<Message>> _messages = _creerMessages();
+  static int _prochainIdMessage = 100;
+
+  static Map<int, List<Message>> _creerMessages() {
+    final n = DateTime.now();
+    // Date "decalage" days from today, at hour h and minute m.
+    DateTime jour(int decalage, int h, int m) =>
+        DateTime(n.year, n.month, n.day + decalage, h, m);
+
+    return {
+      // Sarah: last message unread.
+      1: [
+        Message(
+          id: 1,
+          deMoi: false,
+          texte: "Bonjour docteur, j'ai noté une douleur à 8/10 ce matin aux genoux.",
+          date: jour(0, 8, 40),
+          lu: true,
+        ),
+        Message(
+          id: 2,
+          deMoi: true,
+          texte: "Bonjour Sarah, j'ai vu l'alerte. Avez-vous bien pris le Plaquenil hier soir ?",
+          date: jour(0, 9, 5),
+          lu: true,
+        ),
+        Message(
+          id: 3,
+          deMoi: false,
+          texte: 'Oui, les 3 prises.',
+          date: jour(0, 9, 7),
+          lu: false,
+        ),
+      ],
+      // Maya: all read.
+      2: [
+        Message(
+          id: 6,
+          deMoi: true,
+          texte: 'Votre dernier bilan est bon, on se revoit jeudi.',
+          date: jour(-1, 16, 30),
+          lu: true,
+        ),
+        Message(
+          id: 7,
+          deMoi: false,
+          texte: 'Merci docteur, à jeudi !',
+          date: jour(-1, 16, 45),
+          lu: true,
+        ),
+      ],
+      // Amira: last message unread.
+      3: [
+        Message(
+          id: 4,
+          deMoi: true,
+          texte: 'Bonjour Amira, pensez à bien noter votre suivi chaque soir.',
+          date: jour(-2, 10, 0),
+          lu: true,
+        ),
+        Message(
+          id: 5,
+          deMoi: false,
+          texte: "J'ai oublié mon traitement hier soir, que dois-je faire ?",
+          date: jour(-1, 21, 5),
+          lu: false,
+        ),
+      ],
+      // Lina: the doctor wrote last.
+      4: [
+        Message(
+          id: 8,
+          deMoi: false,
+          texte: "Bonjour docteur, avez-vous reçu mes résultats d'analyses ?",
+          date: jour(-4, 9, 30),
+          lu: true,
+        ),
+        Message(
+          id: 9,
+          deMoi: true,
+          texte: 'Les résultats sont bons.',
+          date: jour(-4, 11, 10),
+          lu: true,
+        ),
+      ],
+    };
+  }
   static MedecinProfile? _profile;
 
   // Email of the account this profile belongs to.
@@ -377,5 +469,69 @@ class MedecinService {
             date: date,
           ),
         );
+  }
+
+  // ---------- Messages (fake data, kept in memory) ----------
+
+  // Conversations (patients with at least one message), newest first.
+  Future<List<Conversation>> getConversations() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final liste = <Conversation>[];
+    for (final p in _patients) {
+      final msgs = _messages[p.id];
+      if (msgs == null || msgs.isEmpty) continue;
+      liste.add(
+        Conversation(
+          patient: p,
+          dernierMessage: msgs.last,
+          nonLus: msgs.where((m) => !m.deMoi && !m.lu).length,
+        ),
+      );
+    }
+    liste.sort(
+      (a, b) => b.dernierMessage.date.compareTo(a.dernierMessage.date),
+    );
+    return liste;
+  }
+
+  // Messages of one conversation, oldest first.
+  Future<List<Message>> getMessages(int patientId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return List.of(_messages[patientId] ?? <Message>[]);
+  }
+
+  Future<void> envoyerMessage(int patientId, String texte) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    _messages.putIfAbsent(patientId, () => []).add(
+          Message(
+            id: _prochainIdMessage++,
+            deMoi: true,
+            texte: texte,
+            date: DateTime.now(),
+            lu: true,
+          ),
+        );
+    messagesChanged.value++;
+  }
+
+  // Marks all the patient's messages as read.
+  void marquerLu(int patientId) {
+    var change = false;
+    for (final m in _messages[patientId] ?? <Message>[]) {
+      if (!m.deMoi && !m.lu) {
+        m.lu = true;
+        change = true;
+      }
+    }
+    if (change) messagesChanged.value++;
+  }
+
+  // Total of unread messages (for the dot on the Accueil).
+  int nombreNonLus() {
+    var total = 0;
+    for (final msgs in _messages.values) {
+      total += msgs.where((m) => !m.deMoi && !m.lu).length;
+    }
+    return total;
   }
 }

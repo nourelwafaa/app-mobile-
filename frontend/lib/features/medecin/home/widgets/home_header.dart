@@ -2,18 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/utils/name_utils.dart';
-// Top of the home page: logo, app name, avatar and greeting.
-class HomeHeader extends StatelessWidget {
-  final String nomMedecin; // e.g. "Dr. Martin"
+import 'package:lupus_plus/services/medecin_service.dart';
 
-  const HomeHeader({super.key, required this.nomMedecin});
+// Top of the home page: logo, app name, message and bell icons, greeting.
+class HomeHeader extends StatelessWidget {
+  final String nomMedecin; // e.g. "Martin"
+  final VoidCallback? onMessages; // tap on the message icon
+  final VoidCallback? onNotifications; // tap on the bell (no page yet)
+
+  const HomeHeader({
+    super.key,
+    required this.nomMedecin,
+    this.onMessages,
+    this.onNotifications,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Line 1: logo + names on the left, avatar on the right.
+        // Line 1: logo + names on the left, icons on the right.
         Row(
           children: [
             Image.asset('assets/images/lupus_logo.png', height: 44),
@@ -35,24 +44,31 @@ class HomeHeader extends StatelessWidget {
                 ),
               ],
             ),
-            // Pushes the avatar to the far right.
             const Spacer(),
-            // Placeholder avatar (no real photo until the profile exists).
-            const CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.avatarCircle,
-              child: Icon(Icons.person, color: AppColors.primary),
+            // The red dot appears only when there are unread messages.
+            ValueListenableBuilder<int>(
+              valueListenable: MedecinService.messagesChanged,
+              builder: (context, value, child) => _IconeAvecPastille(
+                icon: Icons.chat_bubble_outline,
+                afficherPastille: MedecinService().nombreNonLus() > 0,
+                onTap: onMessages,
+              ),
+            ),
+            _IconeAvecPastille(
+              icon: Icons.notifications_none,
+              afficherPastille: false,
+              onTap: onNotifications,
             ),
           ],
         ),
         const SizedBox(height: 20),
-        // Line 2: "Bonjour Dr. Martin 👋"
+        // Line 2: "Bonjour Dr Martin"
         Text(
-          '${AppStrings.bonjour} ${nomAvecTitre(nomMedecin)} 👋',
+          '${AppStrings.bonjour} ${nomAvecTitre(nomMedecin)}',
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
+            color: AppColors.nameText,
           ),
         ),
         const SizedBox(height: 4),
@@ -62,6 +78,46 @@ class HomeHeader extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: AppColors.textGrey),
         ),
       ],
+    );
+  }
+}
+
+// An icon button with an optional red dot at its top-right corner.
+class _IconeAvecPastille extends StatelessWidget {
+  final IconData icon;
+  final bool afficherPastille;
+  final VoidCallback? onTap;
+
+  const _IconeAvecPastille({
+    required this.icon,
+    required this.afficherPastille,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(icon, size: 26, color: AppColors.primary),
+          if (afficherPastille)
+            Positioned(
+              right: -1,
+              top: -1,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.notifDot,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

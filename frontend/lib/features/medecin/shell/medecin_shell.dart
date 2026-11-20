@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/features/medecin/agenda/agenda_page.dart';
-import 'package:lupus_plus/features/medecin/home/home_page.dart';
+import 'package:lupus_plus/features/medecin/home/accueil_navigator.dart';
 import 'package:lupus_plus/features/medecin/patients/patients_navigator.dart';
 import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
 
@@ -18,14 +19,32 @@ class _MedecinShellState extends State<MedecinShell> {
   // Selected tab: 0 = Accueil, 1 = Patients, 2 = Agenda, 3 = Profil.
   int _currentIndex = 0;
 
-  // Key to control the Patients tab's own navigator (for the back button).
+  // Keys to control the own navigators of the Accueil and Patients tabs.
+  final GlobalKey<NavigatorState> _accueilNavKey = GlobalKey<NavigatorState>();
   final GlobalKey<NavigatorState> _patientsNavKey = GlobalKey<NavigatorState>();
 
-  void _allerA(int index) => setState(() => _currentIndex = index);
+  // Navigator of the selected tab (only Accueil and Patients have one).
+  NavigatorState? get _navigateurActuel => switch (_currentIndex) {
+        0 => _accueilNavKey.currentState,
+        1 => _patientsNavKey.currentState,
+        _ => null,
+      };
+
+  void _allerA(int index) {
+    // Tapping the tab you are already on goes back to its first page.
+    if (index == _currentIndex) {
+      _navigateurActuel?.popUntil((route) => route.isFirst);
+      return;
+    }
+    setState(() => _currentIndex = index);
+  }
 
   // The 4 pages, in the same order as the indexes above.
   late final List<Widget> _pages = [
-    HomePage(onVoirTout: () => _allerA(1)),
+    AccueilNavigator(
+      navigatorKey: _accueilNavKey,
+      onVoirTout: () => _allerA(1),
+    ),
     PatientsNavigator(
       navigatorKey: _patientsNavKey,
       onRetourAccueil: () => _allerA(0),
@@ -36,17 +55,19 @@ class _MedecinShellState extends State<MedecinShell> {
 
   @override
   Widget build(BuildContext context) {
-    // System back button: closes a patient file first, then goes to the
-    // Accueil tab, and only then leaves the app.
+    // System back button: closes a page inside the tab first, then goes to
+    // the Accueil tab, and only then leaves the app.
     return PopScope(
-      canPop: _currentIndex == 0,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        final nav = _patientsNavKey.currentState;
-        if (_currentIndex == 1 && nav != null && nav.canPop()) {
+        final nav = _navigateurActuel;
+        if (nav != null && nav.canPop()) {
           nav.pop();
+        } else if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
         } else {
-          _allerA(0);
+          SystemNavigator.pop();
         }
       },
       child: Scaffold(
