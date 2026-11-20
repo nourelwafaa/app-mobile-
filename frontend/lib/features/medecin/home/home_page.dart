@@ -12,7 +12,10 @@ import 'package:lupus_plus/providers/auth_provider.dart';
 // The doctor's home page.
 // It is a StatefulWidget because it loads data once when it opens.
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  // Called when the doctor taps "Voir tout" (switches to the Patients tab).
+  final VoidCallback? onVoirTout;
+
+  const HomePage({super.key, this.onVoirTout});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -132,11 +135,15 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 24),
 
         // Section title: "Mes patients récents" ........ "Voir tout"
-        const Row(
+        Row(
           children: [
-            Icon(Icons.people_alt_outlined, size: 20, color: AppColors.primary),
-            SizedBox(width: 8),
-            Text(
+            const Icon(
+              Icons.people_alt_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text(
               AppStrings.mesPatientsRecents,
               style: TextStyle(
                 fontSize: 15,
@@ -144,14 +151,20 @@ class _HomePageState extends State<HomePage> {
                 color: AppColors.textDark,
               ),
             ),
-            Spacer(),
-            // Plain text for now: nothing happens until the patients page exists.
-            Text(
-              AppStrings.voirTout,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary,
+            const Spacer(),
+            // Tap: opens the Patients tab.
+            GestureDetector(
+              onTap: widget.onVoirTout,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                child: Text(
+                  AppStrings.voirTout,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ),
           ],

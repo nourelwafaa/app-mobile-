@@ -41,4 +41,9 @@ class AppColors {
   static const Color successBg = Color(0xFFE3F5EC);   // "Terminé" chip background
   static const Color successText = Color(0xFF1E7B4A); // "Terminé" chip text
   static const Color dangerBg = Color(0xFFFDE5E3);    // "Annulé" chip background
+
+  // Patients
+  static const Color warningBg = Color(0xFFFFF1DC);   // orange alert background
+  static const Color warningText = Color(0xFFB26A00); // orange alert text
+  static const Color chartBar = Color(0xFFB98FD6);    // pain chart bars
 }

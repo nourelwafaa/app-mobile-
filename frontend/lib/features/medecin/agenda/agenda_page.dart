@@ -36,10 +36,13 @@ class _AgendaPageState extends State<AgendaPage> {
     _selection = _aujourdhui;
     _pageController = PageController(initialPage: _pageDepart);
     _charger();
+    // Reload when an appointment is added from another screen.
+    MedecinService.rdvChanged.addListener(_charger);
   }
 
   @override
   void dispose() {
+    MedecinService.rdvChanged.removeListener(_charger);
     _pageController.dispose();
     super.dispose();
   }
