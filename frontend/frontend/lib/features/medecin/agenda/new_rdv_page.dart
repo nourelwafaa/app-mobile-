@@ -10,11 +10,13 @@ import 'package:lupus_plus/services/medecin_service.dart';
 class NewRdvPage extends StatefulWidget {
   final List<Patient> patients; // patients the doctor can choose from
   final DateTime dateInitiale; // date pre-filled in the form
+  final int? patientIdInitial; // patient preselected (e.g. from the patient file)
 
   const NewRdvPage({
     super.key,
     required this.patients,
     required this.dateInitiale,
+    this.patientIdInitial,
   });
 
   @override
@@ -40,6 +42,12 @@ class _NewRdvPageState extends State<NewRdvPage> {
   void initState() {
     super.initState();
     _date = widget.dateInitiale;
+    // Preselect the patient if one was given.
+    if (widget.patientIdInitial != null) {
+      for (final p in widget.patients) {
+        if (p.id == widget.patientIdInitial) _patient = p;
+      }
+    }
     _dateCtrl = TextEditingController(text: _formatDate(_date));
     _heureCtrl = TextEditingController(text: _formatHeure(_heure));
   }

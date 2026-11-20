@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
-import 'package:lupus_plus/features/medecin/home/home_page.dart';
-import 'package:lupus_plus/features/medecin/shell/placeholder_page.dart';
-import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
 import 'package:lupus_plus/features/medecin/agenda/agenda_page.dart';
+import 'package:lupus_plus/features/medecin/home/home_page.dart';
+import 'package:lupus_plus/features/medecin/patients/patients_navigator.dart';
+import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
 
 // The doctor's main screen: the current tab + the bottom bar.
 class MedecinShell extends StatefulWidget {
@@ -15,74 +15,93 @@ class MedecinShell extends StatefulWidget {
 }
 
 class _MedecinShellState extends State<MedecinShell> {
-  // Index of the selected tab: 0 = Accueil, 1 = Patients, 2 = Agenda, 3 = Profil.
+  // Selected tab: 0 = Accueil, 1 = Patients, 2 = Agenda, 3 = Profil.
   int _currentIndex = 0;
 
+  // Key to control the Patients tab's own navigator (for the back button).
+  final GlobalKey<NavigatorState> _patientsNavKey = GlobalKey<NavigatorState>();
+
+  void _allerA(int index) => setState(() => _currentIndex = index);
+
   // The 4 pages, in the same order as the indexes above.
-  final List<Widget> _pages = const [
-    HomePage(),
-    PlaceholderPage(title: AppStrings.navPatients),
-    AgendaPage(),
-    ProfilePage(),
+  late final List<Widget> _pages = [
+    HomePage(onVoirTout: () => _allerA(1)),
+    PatientsNavigator(
+      navigatorKey: _patientsNavKey,
+      onRetourAccueil: () => _allerA(0),
+    ),
+    const AgendaPage(),
+    const ProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // IndexedStack shows only the selected page but keeps the others alive,
-      // so the home page doesn't reload every time you come back to it.
-      body: IndexedStack(index: _currentIndex, children: _pages),
+    // System back button: closes a patient file first, then goes to the
+    // Accueil tab, and only then leaves the app.
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final nav = _patientsNavKey.currentState;
+        if (_currentIndex == 1 && nav != null && nav.canPop()) {
+          nav.pop();
+        } else {
+          _allerA(0);
+        }
+      },
+      child: Scaffold(
+        // IndexedStack shows only the selected page but keeps the others alive.
+        body: IndexedStack(index: _currentIndex, children: _pages),
 
-      // Center "+" button, docked in the middle of the bar.
-      floatingActionButton: FloatingActionButton(
-        // Nothing happens until the "add patient" feature exists.
-        onPressed: () {},
-        backgroundColor: AppColors.accent,
-        elevation: 2,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        // Center "+" button, docked in the middle of the bar.
+        floatingActionButton: FloatingActionButton(
+          // Nothing happens until the "add patient" feature exists.
+          onPressed: () {},
+          backgroundColor: AppColors.accent,
+          elevation: 2,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.add, color: Colors.white, size: 30),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // Bottom bar with a round notch for the "+" button.
-      bottomNavigationBar: BottomAppBar(
-        color: AppColors.navBar,
-        surfaceTintColor: Colors.transparent,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        height: 64,
-        padding: EdgeInsets.zero,
-        child: Row(
-          children: [
-            // Two tabs on the left.
-            _NavItem(
-              icon: Icons.home_outlined,
-              label: AppStrings.navAccueil,
-              selected: _currentIndex == 0,
-              onTap: () => setState(() => _currentIndex = 0),
-            ),
-            _NavItem(
-              icon: Icons.people_outline,
-              label: AppStrings.navPatients,
-              selected: _currentIndex == 1,
-              onTap: () => setState(() => _currentIndex = 1),
-            ),
-            // Empty space under the "+" button.
-            const SizedBox(width: 72),
-            // Two tabs on the right.
-            _NavItem(
-              icon: Icons.calendar_today_outlined,
-              label: AppStrings.navAgenda,
-              selected: _currentIndex == 2,
-              onTap: () => setState(() => _currentIndex = 2),
-            ),
-            _NavItem(
-              icon: Icons.person_outline,
-              label: AppStrings.navProfil,
-              selected: _currentIndex == 3,
-              onTap: () => setState(() => _currentIndex = 3),
-            ),
-          ],
+        // Bottom bar with a round notch for the "+" button.
+        bottomNavigationBar: BottomAppBar(
+          color: AppColors.navBar,
+          surfaceTintColor: Colors.transparent,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8,
+          height: 64,
+          padding: EdgeInsets.zero,
+          child: Row(
+            children: [
+              _NavItem(
+                icon: Icons.home_outlined,
+                label: AppStrings.navAccueil,
+                selected: _currentIndex == 0,
+                onTap: () => _allerA(0),
+              ),
+              _NavItem(
+                icon: Icons.people_outline,
+                label: AppStrings.navPatients,
+                selected: _currentIndex == 1,
+                onTap: () => _allerA(1),
+              ),
+              // Empty space under the "+" button.
+              const SizedBox(width: 72),
+              _NavItem(
+                icon: Icons.calendar_today_outlined,
+                label: AppStrings.navAgenda,
+                selected: _currentIndex == 2,
+                onTap: () => _allerA(2),
+              ),
+              _NavItem(
+                icon: Icons.person_outline,
+                label: AppStrings.navProfil,
+                selected: _currentIndex == 3,
+                onTap: () => _allerA(3),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -90,12 +109,11 @@ class _MedecinShellState extends State<MedecinShell> {
 }
 
 // One tab of the bottom bar: an icon with a label under it.
-// The leading "_" makes this class private to this file.
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool selected; // true = this tab is the current one
-  final VoidCallback onTap; // what to do when tapped
+  final bool selected;
+  final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
@@ -106,10 +124,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Purple when selected, grey otherwise.
     final color = selected ? AppColors.primary : AppColors.textGrey;
 
-    // Expanded: the 4 tabs share the available width equally.
     return Expanded(
       child: InkWell(
         onTap: onTap,

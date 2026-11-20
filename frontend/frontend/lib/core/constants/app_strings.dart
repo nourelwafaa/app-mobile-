@@ -79,4 +79,46 @@ class AppStrings {
   static const String lieu = 'Lieu';
   static const String motif = 'Motif';
   static const String ajouter = 'Ajouter';
+
+  // Patients list
+  static const String mesPatients = 'Mes patients';
+  static const String rechercherPatient = 'Rechercher un patient';
+  static const String filtreTous = 'Tous';
+  static const String filtreAlerte = 'Avec alerte';
+  static const String filtreRdvSemaine = 'RDV cette semaine';
+  static const String alerte = 'Alerte';
+  static const String suiviDuJour = 'Suivi du jour';
+  static const String groupe = 'Groupe';
+  static const String ans = 'ans';
+  static const String aucunPatient = 'Aucun patient trouvé';
+
+  // Patient file
+  static const String fichePatient = 'Fiche patient';
+  static const String ongletSuivi = 'Suivi';
+  static const String ongletTraitements = 'Traitements';
+  static const String ongletDocuments = 'Documents';
+  static const String douleur7Jours = 'Douleur · 7 derniers jours';
+  static const String aucuneDonnee = 'Aucune donnée';
+  static const String foisParJour = 'fois / jour';
+  static const String aucunTraitement = 'Aucun traitement';
+  static const String aucunDocument = 'Aucun document';
+  static const String message = 'Message';
+  static const String planifierRdv = 'Planifier un RDV';
+  static const String ajouterMedicament = 'Ajouter un médicament';
+  static const String ajouterDocument = 'Ajouter un document';
+  static const String tout = 'Tout';
+
+  // New medication / new document
+  static const String nouveauMedicamentTitre = 'Nouveau médicament';
+  static const String nomMedicament = 'Nom du médicament';
+  static const String dosage = 'Dosage';
+  static const String foisParJourLabel = 'Fois par jour';
+  static const String dateDebut = 'Date de début';
+  static const String dateFin = 'Date de fin (optionnel)';
+  static const String finAvantDebut = 'La date de fin doit être après le début';
+  static const String medicamentAjoute = 'Médicament ajouté';
+  static const String nouveauDocumentTitre = 'Nouveau document';
+  static const String titreDocument = 'Titre';
+  static const String typeDocument = 'Type';
+  static const String documentAjoute = 'Document ajouté';
 }

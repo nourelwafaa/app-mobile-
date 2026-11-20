@@ -22,3 +22,20 @@ String formatActivite(DateTime date) {
   final mm = date.month.toString().padLeft(2, '0');
   return '$dd/$mm, $time';
 }
+
+// "aujourd'hui, 09:12", "hier, 16:45" or "il y a 3 jours".
+String formatSuivi(DateTime date) {
+  final now = DateTime.now();
+
+  // Compare only the day (ignore the hour).
+  final today = DateTime.utc(now.year, now.month, now.day);
+  final day = DateTime.utc(date.year, date.month, date.day);
+  final daysAgo = today.difference(day).inDays;
+
+  final hour = date.hour.toString().padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
+
+  if (daysAgo == 0) return "aujourd'hui, $hour:$minute";
+  if (daysAgo == 1) return 'hier, $hour:$minute';
+  return 'il y a $daysAgo jours';
+}
