@@ -2,7 +2,7 @@
 class AppStrings {
   // General
   static const String appName = 'Lupus+';
-  static const String espaceMedecin = 'Espace Médecin';
+  static const String espaceMedecin = 'Espace médecin';
   static const String bientotDisponible = 'Bientôt disponible';
 
   // Home page: header
@@ -121,4 +121,16 @@ class AppStrings {
   static const String titreDocument = 'Titre';
   static const String typeDocument = 'Type';
   static const String documentAjoute = 'Document ajouté';
+
+  // Messages
+  static const String messages = 'Messages';
+  static const String rechercherConversation = 'Rechercher une conversation';
+  static const String uniquementPatientsSuivis = 'Uniquement avec vos patients suivis';
+  static const String aucuneConversation = 'Aucune conversation';
+  static const String vous = 'Vous';
+  static const String fiche = 'Fiche';
+  static const String ecrivezMessage = 'Écrivez votre message…';
+  static const String aucunMessage = 'Aucun message, écrivez le premier';
+  static const String patienteSuivie = 'patiente suivie';
+  static const String patientSuivi = 'patient suivi';
 }

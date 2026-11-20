@@ -6,7 +6,7 @@ import 'package:lupus_plus/features/medecin/agenda/new_rdv_page.dart';
 import 'package:lupus_plus/features/medecin/patients/add_document_page.dart';
 import 'package:lupus_plus/features/medecin/patients/add_traitement_page.dart';
 import 'package:lupus_plus/features/medecin/patients/widgets/segmented_tabs.dart';
-import 'package:lupus_plus/features/medecin/shell/placeholder_page.dart';
+import 'package:lupus_plus/features/medecin/messages/chat_page.dart';
 import 'package:lupus_plus/models/document_medical.dart';
 import 'package:lupus_plus/models/patient.dart';
 import 'package:lupus_plus/models/traitement.dart';
@@ -89,14 +89,11 @@ class _PatientFichePageState extends State<PatientFichePage> {
     );
   }
 
-  // Messaging does not exist yet: "Bientôt disponible" page.
+  // Opens the chat with this patient (full screen).
   void _ouvrirMessage() {
     _racine.push(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(),
-          body: PlaceholderPage(title: _p.nom),
-        ),
+        builder: (_) => ChatPage(patient: _p, depuisFiche: true),
       ),
     );
   }

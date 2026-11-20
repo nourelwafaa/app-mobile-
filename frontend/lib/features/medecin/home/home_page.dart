@@ -8,6 +8,7 @@ import 'package:lupus_plus/models/home_data.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/features/medecin/messages/messages_page.dart';
 
 // The doctor's home page.
 // It is a StatefulWidget because it loads data once when it opens.
@@ -36,7 +37,12 @@ class _HomePageState extends State<HomePage> {
     final user = context.read<AuthProvider>().user!;
     _futureData = _service.getHomeData(user);
   }
-
+  // Opens the conversations list inside the Accueil tab (the bar stays).
+  void _ouvrirMessages() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MessagesPage()),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     // SafeArea keeps the content away from the phone's status bar.
@@ -87,7 +93,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
         // Logo, names, avatar and greeting.
-        HomeHeader(nomMedecin: data.nomMedecin),
+        HomeHeader(nomMedecin: data.nomMedecin, onMessages: _ouvrirMessages),
         const SizedBox(height: 24),
 
         // The 4 counter cards in 2 columns.

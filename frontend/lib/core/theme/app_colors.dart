@@ -46,4 +46,8 @@ class AppColors {
   static const Color warningBg = Color(0xFFFFF1DC);   // orange alert background
   static const Color warningText = Color(0xFFB26A00); // orange alert text
   static const Color chartBar = Color(0xFFB98FD6);    // pain chart bars
+
+  // Messages
+  static const Color notifDot = Color(0xFFD4246B);     // red dot on the message icon
+  static const Color sendDisabled = Color(0xFFC4A3DA); // send button when the box is empty
 }
