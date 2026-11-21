@@ -10,8 +10,13 @@ import 'package:lupus_plus/services/medecin_service.dart';
 // Closes with true when saved.
 class AddDocumentPage extends StatefulWidget {
   final int patientId;
+  final TypeDocument typeInitial; // type preselected in the form
 
-  const AddDocumentPage({super.key, required this.patientId});
+  const AddDocumentPage({
+    super.key,
+    required this.patientId,
+    this.typeInitial = TypeDocument.ordonnance,
+  });
 
   @override
   State<AddDocumentPage> createState() => _AddDocumentPageState();
@@ -24,7 +29,7 @@ class _AddDocumentPageState extends State<AddDocumentPage> {
   final _titreCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
 
-  TypeDocument _type = TypeDocument.ordonnance;
+  late TypeDocument _type;
   late DateTime _date;
 
   bool _enregistrement = false;
@@ -32,6 +37,7 @@ class _AddDocumentPageState extends State<AddDocumentPage> {
   @override
   void initState() {
     super.initState();
+    _type = widget.typeInitial;
     final n = DateTime.now();
     _date = DateTime(n.year, n.month, n.day);
     _dateCtrl.text = _format(_date);

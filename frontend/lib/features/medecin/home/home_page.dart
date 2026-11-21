@@ -9,6 +9,7 @@ import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/features/medecin/messages/messages_page.dart';
+import 'package:lupus_plus/features/medecin/alerts/alertes_page.dart';
 
 // The doctor's home page.
 // It is a StatefulWidget because it loads data once when it opens.
@@ -31,16 +32,41 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Start loading ONCE, when the page opens.
-    // (Doing it inside build() would reload the data at every redraw.)
     // The logged-in account (this page only exists when someone is logged in).
     final user = context.read<AuthProvider>().user!;
     _futureData = _service.getHomeData(user);
+    // Reload the counters when a patient or an appointment is added.
+    MedecinService.patientsChanged.addListener(_recharger);
+    MedecinService.rdvChanged.addListener(_recharger);
+    MedecinService.alertesChanged.addListener(_recharger);
+  }
+  @override
+  void dispose() {
+    MedecinService.patientsChanged.removeListener(_recharger);
+    MedecinService.rdvChanged.removeListener(_recharger);
+    MedecinService.alertesChanged.removeListener(_recharger);
+    super.dispose();
+  }
+
+  // Loads the data again (the old data stays visible meanwhile).
+  void _recharger() {
+    if (!mounted) return;
+    final user = context.read<AuthProvider>().user!;
+    setState(() {
+      _futureData = _service.getHomeData(user);
+    });
   }
   // Opens the conversations list inside the Accueil tab (the bar stays).
   void _ouvrirMessages() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const MessagesPage()),
+    );
+  }
+
+  // Opens the alerts page inside the Accueil tab (the bar stays visible).
+  void _ouvrirAlertes() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AlertesPage()),
     );
   }
   @override
@@ -68,7 +94,8 @@ class _HomePageState extends State<HomePage> {
             future: _futureData,
             builder: (context, snapshot) {
               // 1. Still loading: show a spinner.
-              if (snapshot.connectionState != ConnectionState.done) {
+              if (!snapshot.hasData &&
+                  snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -121,6 +148,7 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: AppColors.cardAlertes,
               value: '${data.alertesAujourdhui}',
               label: AppStrings.alertesAujourdhui,
+              onTap: _ouvrirAlertes,
             ),
             StatCard(
               icon: Icons.calendar_month,

@@ -35,6 +35,17 @@ class _PatientsPageState extends State<PatientsPage> {
   void initState() {
     super.initState();
     _charger();
+    // Reload when a patient or an appointment is added.
+    MedecinService.patientsChanged.addListener(_charger);
+    MedecinService.rdvChanged.addListener(_charger);
+    MedecinService.alertesChanged.addListener(_charger);
+  }
+  @override
+  void dispose() {
+    MedecinService.patientsChanged.removeListener(_charger);
+    MedecinService.rdvChanged.removeListener(_charger);
+    MedecinService.alertesChanged.removeListener(_charger);
+    super.dispose();
   }
 
   Future<void> _charger() async {

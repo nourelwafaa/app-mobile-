@@ -1,3 +1,5 @@
+
+import '../models/alerte.dart';
 import '../models/home_data.dart';
 import '../models/medecin_profile.dart';
 import '../models/models.dart'; // AppUser (the logged-in account)
@@ -8,7 +10,20 @@ import '../models/document_medical.dart';
 import '../models/traitement.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
+import '../models/resultat_recherche.dart';
 
+// A patient registered in the app, with his contact (fake registry).
+class _Inscrit {
+  final Patient patient;
+  final String email;
+  final String telephone;
+
+  _Inscrit({
+    required this.patient,
+    required this.email,
+    required this.telephone,
+  });
+}
 // Gives the data to the screens.
 // For now the data is FAKE. When the backend is ready, only the inside of
 // these methods changes (they will call the API); the screens stay the same.
@@ -20,7 +35,10 @@ class MedecinService {
   // "static" = one single copy shared by the whole app.
   // Incremented each time a message is sent or read, so the lists reload.
   static final ValueNotifier<int> messagesChanged = ValueNotifier<int>(0);
-
+  // Incremented each time a patient is added, so the lists and counters reload.
+  static final ValueNotifier<int> patientsChanged = ValueNotifier<int>(0);
+  // Incremented each time an alert is handled, so the lists and counters reload.
+  static final ValueNotifier<int> alertesChanged = ValueNotifier<int>(0);
   // Messages by patient id, oldest first (fake data).
   static final Map<int, List<Message>> _messages = _creerMessages();
   static int _prochainIdMessage = 100;
@@ -143,11 +161,15 @@ class MedecinService {
       // The name comes from the profile, so an edit is also seen here.
       nomMedecin: _profileFor(user).nomComplet,
       patientsSuivis: _patients.length,
-      alertesAujourdhui:
-          _patients.where((p) => p.alerte != NiveauAlerte.aucune).length,
-      rendezVousAVenir: 5,
+      // Alerts still to handle.
+      alertesAujourdhui: _alertes.where((a) => !a.traitee).length,
+      // Planned appointments that have not happened yet.
+      rendezVousAVenir: _rdvs
+          .where((r) =>
+              r.statut == StatutRdv.planifie && r.dateHeure.isAfter(DateTime.now()))
+          .length,
       ameliorationMoyenne: 12,
-      patientsRecents: recents.take(3).toList(),
+      patientsRecents: recents.take(3).map(_avecAlerte).toList(),
     );
   }
 
@@ -369,7 +391,7 @@ class MedecinService {
 
   Future<List<Patient>> getPatients() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return List.of(_patients);
+    return _patients.map(_avecAlerte).toList();
   }
 
   Future<List<RendezVous>> getRendezVous() async {
@@ -482,7 +504,7 @@ class MedecinService {
       if (msgs == null || msgs.isEmpty) continue;
       liste.add(
         Conversation(
-          patient: p,
+          patient: _avecAlerte(p),
           dernierMessage: msgs.last,
           nonLus: msgs.where((m) => !m.deMoi && !m.lu).length,
         ),
@@ -533,5 +555,224 @@ class MedecinService {
       total += msgs.where((m) => !m.deMoi && !m.lu).length;
     }
     return total;
+  }
+  // ---------- Add a patient (fake registry, kept in memory) ----------
+
+  // Patients registered in the app: 2 are already followed, 4 are not.
+  static final List<_Inscrit> _inscrits = _creerInscrits();
+
+  static List<_Inscrit> _creerInscrits() {
+    final n = DateTime.now();
+    DateTime jour(int decalage, int h, int m) =>
+        DateTime(n.year, n.month, n.day + decalage, h, m);
+
+    return [
+      // Already in the doctor's list.
+      _Inscrit(
+        patient: _patients.firstWhere((p) => p.id == 1),
+        email: 'sarah@mail.com',
+        telephone: '0555 12 34 56',
+      ),
+      _Inscrit(
+        patient: _patients.firstWhere((p) => p.id == 2),
+        email: 'maya.dubois@mail.com',
+        telephone: '0550 11 22 33',
+      ),
+      // Not followed yet.
+      _Inscrit(
+        patient: Patient(
+          id: 9,
+          nom: 'Rania Ouali',
+          derniereActivite: jour(-1, 20, 15),
+          dateNaissance: DateTime(1993, 4, 8),
+          sexe: 'Femme',
+          groupeSanguin: 'A+',
+          douleur7Jours: [3, 3, 4, 3, 2, 3, 3],
+        ),
+        email: 'rania.ouali@mail.com',
+        telephone: '0661 23 45 67',
+      ),
+      _Inscrit(
+        patient: Patient(
+          id: 10,
+          nom: 'Samir Hamdi',
+          derniereActivite: jour(-2, 9, 45),
+          dateNaissance: DateTime(1990, 11, 12),
+          sexe: 'Homme',
+          groupeSanguin: 'B+',
+          douleur7Jours: [2, 3, 2, 2, 3, 3, 2],
+        ),
+        email: 'samir.hamdi@mail.com',
+        telephone: '0770 98 76 54',
+      ),
+      _Inscrit(
+        patient: Patient(
+          id: 11,
+          nom: 'Lydia Bouzid',
+          derniereActivite: jour(-3, 19, 30),
+          dateNaissance: DateTime(1999, 2, 17),
+          sexe: 'Femme',
+          groupeSanguin: 'O+',
+          douleur7Jours: [4, 4, 5, 4, 4, 5, 4],
+        ),
+        email: 'lydia.bouzid@mail.com',
+        telephone: '0555 44 33 22',
+      ),
+      _Inscrit(
+        patient: Patient(
+          id: 12,
+          nom: 'Nabil Taleb',
+          derniereActivite: jour(-5, 8, 20),
+          dateNaissance: DateTime(1978, 6, 30),
+          sexe: 'Homme',
+          groupeSanguin: 'AB+',
+          douleur7Jours: [1, 2, 1, 2, 2, 1, 2],
+        ),
+        email: 'nabil.taleb@mail.com',
+        telephone: '0698 11 00 99',
+      ),
+    ];
+  }
+
+  // Looks for a registered patient by exact email or phone number.
+  // Returns null if nobody matches.
+  Future<ResultatRecherche?> rechercherPatient(String identifiant) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final saisie = identifiant.trim().toLowerCase();
+    final estEmail = saisie.contains('@');
+    // Phone compared without spaces or dashes.
+    final chiffres = saisie.replaceAll(RegExp(r'\D'), '');
+
+    for (final i in _inscrits) {
+      final memeEmail = estEmail && i.email.toLowerCase() == saisie;
+      final memeTel = !estEmail &&
+          chiffres.length >= 8 &&
+          i.telephone.replaceAll(RegExp(r'\D'), '') == chiffres;
+
+      if (memeEmail || memeTel) {
+        return ResultatRecherche(
+          patient: i.patient,
+          dejaSuivi: _patients.any((p) => p.id == i.patient.id),
+        );
+      }
+    }
+    return null;
+  }
+
+  // Adds a patient to the doctor's list.
+  Future<void> ajouterPatient(Patient patient) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (_patients.any((p) => p.id == patient.id)) return;
+    _patients.add(patient);
+    patientsChanged.value++;
+  }
+  // ---------- Alerts (fake data, kept in memory) ----------
+
+  static final List<Alerte> _alertes = _creerAlertes();
+
+  static List<Alerte> _creerAlertes() {
+    final n = DateTime.now();
+    DateTime jour(int decalage, int h, int m) =>
+        DateTime(n.year, n.month, n.day + decalage, h, m);
+
+    return [
+      Alerte(
+        id: 1,
+        patientId: 1,
+        patientNom: 'Sarah Benali',
+        niveau: NiveauAlerte.eleve,
+        message: 'Douleur signalée à 8/10 dans le suivi du jour.',
+        date: jour(0, 9, 12),
+      ),
+      Alerte(
+        id: 2,
+        patientId: 3,
+        patientNom: 'Amira Haddad',
+        niveau: NiveauAlerte.moyen,
+        message: '2 prises de Plaquenil oubliées cette semaine.',
+        date: jour(-1, 20, 30),
+      ),
+      Alerte(
+        id: 3,
+        patientId: 2,
+        patientNom: 'Maya Dubois',
+        niveau: NiveauAlerte.faible,
+        message: 'Fatigue en hausse depuis 3 jours.',
+        date: jour(-1, 16, 45),
+      ),
+      // Already handled.
+      Alerte(
+        id: 4,
+        patientId: 6,
+        patientNom: 'Nadia Cherif',
+        niveau: NiveauAlerte.moyen,
+        message: 'Sommeil insuffisant depuis 3 jours.',
+        date: jour(-5, 11, 5),
+        traitee: true,
+      ),
+      Alerte(
+        id: 5,
+        patientId: 4,
+        patientNom: 'Lina Mansouri',
+        niveau: NiveauAlerte.faible,
+        message: 'Douleur à 6/10 signalée deux jours de suite.',
+        date: jour(-4, 8, 30),
+        traitee: true,
+      ),
+    ];
+  }
+
+  // The patient with his alert level taken from his pending alerts
+  // (the highest level, then the most recent).
+  Patient _avecAlerte(Patient p) {
+    final enCours =
+        _alertes.where((a) => a.patientId == p.id && !a.traitee).toList();
+    if (enCours.isEmpty) return p.avecAlerte(NiveauAlerte.aucune, null);
+
+    enCours.sort((a, b) {
+      final niveau = b.niveau.index.compareTo(a.niveau.index);
+      return niveau != 0 ? niveau : b.date.compareTo(a.date);
+    });
+    return p.avecAlerte(enCours.first.niveau, enCours.first.message);
+  }
+
+  // All alerts, newest first.
+  Future<List<Alerte>> getAlertes() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final liste = List.of(_alertes);
+    liste.sort((a, b) => b.date.compareTo(a.date));
+    return liste;
+  }
+
+  Future<void> marquerAlerteTraitee(int id) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    final i = _alertes.indexWhere((a) => a.id == id);
+    if (i == -1) return;
+    _alertes[i].traitee = true;
+    alertesChanged.value++;
+  }
+
+  // One patient by id (with his alert level), null if unknown.
+  Future<Patient?> getPatient(int id) async {
+    final liste = await getPatients();
+    for (final p in liste) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  // ---------- Profile photo (kept in memory for the session) ----------
+
+  static Uint8List? _photo;
+  static String? _photoEmail; // account the photo belongs to
+
+  // The photo of this account, or null.
+  Uint8List? getPhoto(AppUser user) => _photoEmail == user.email ? _photo : null;
+
+  // Saves the photo (null removes it).
+  void setPhoto(AppUser user, Uint8List? octets) {
+    _photo = octets;
+    _photoEmail = octets == null ? null : user.email;
   }
 }

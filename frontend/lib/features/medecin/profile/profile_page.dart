@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
@@ -23,6 +25,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // The profile being loaded (available "in the future").
   late Future<MedecinProfile> _futureProfile;
+  final ImagePicker _picker = ImagePicker();
+  Uint8List? _photo; // profile photo (null = the initial is shown)
 
   @override
   void initState() {
@@ -31,6 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
         // The logged-in account (this page only exists when someone is logged in).
     final user = context.read<AuthProvider>().user!;
     _futureProfile = _service.getProfile(user);
+    _photo = _service.getPhoto(user);
   }
 
   @override
@@ -102,6 +107,91 @@ class _ProfilePageState extends State<ProfilePage> {
       await context.read<AuthProvider>().logout();
     }
   }
+
+  // Sheet: take a photo, pick from the gallery, or remove the current one.
+  Future<void> _choisirPhoto() async {
+    final choix = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_camera_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text(AppStrings.prendrePhoto),
+                onTap: () => Navigator.pop(sheetContext, 'camera'),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text(AppStrings.choisirGalerie),
+                onTap: () => Navigator.pop(sheetContext, 'galerie'),
+              ),
+              if (_photo != null)
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                  ),
+                  title: const Text(
+                    AppStrings.supprimerPhoto,
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                  onTap: () => Navigator.pop(sheetContext, 'supprimer'),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (choix == null || !mounted) return;
+
+    if (choix == 'supprimer') {
+      final user = context.read<AuthProvider>().user!;
+      _service.setPhoto(user, null);
+      setState(() => _photo = null);
+      return;
+    }
+
+    await _recupererPhoto(
+      choix == 'camera' ? ImageSource.camera : ImageSource.gallery,
+    );
+  }
+
+  // Opens the camera or the gallery and keeps the chosen photo.
+  Future<void> _recupererPhoto(ImageSource source) async {
+    try {
+      final fichier = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      if (fichier == null) return; // cancelled
+      final octets = await fichier.readAsBytes();
+      if (!mounted) return;
+
+      final user = context.read<AuthProvider>().user!;
+      _service.setPhoto(user, octets);
+      setState(() => _photo = octets);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.photoErreur)),
+      );
+    }
+  }
   
   // Opens the edit page, then refreshes this page if something was saved.
   Future<void> _modifierProfil(MedecinProfile profil) async {
@@ -145,17 +235,47 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 20),
 
         // Avatar: purple circle with the initial of the name.
+        // Avatar: the photo, or a purple circle with the initial. Tap to change.
         Center(
-          child: CircleAvatar(
-            radius: 42,
-            backgroundColor: AppColors.primary,
-            child: Text(
-              initialeNom(profil.nomComplet),
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+          child: GestureDetector(
+            onTap: _choisirPhoto,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage: _photo == null ? null : MemoryImage(_photo!),
+                  child: _photo == null
+                      ? Text(
+                          initialeNom(profil.nomComplet),
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
+                ),
+                // Small camera badge at the bottom-right.
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.background, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.photo_camera,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

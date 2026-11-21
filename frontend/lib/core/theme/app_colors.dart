@@ -50,4 +50,8 @@ class AppColors {
   // Messages
   static const Color notifDot = Color(0xFFD4246B);     // red dot on the message icon
   static const Color sendDisabled = Color(0xFFC4A3DA); // send button when the box is empty
+
+  // Low-level alert (blue label)
+  static const Color infoBg = Color(0xFFE4ECFA);
+  static const Color infoText = Color(0xFF1F4E99);
 }
