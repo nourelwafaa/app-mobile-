@@ -133,4 +133,46 @@ class AppStrings {
   static const String aucunMessage = 'Aucun message, écrivez le premier';
   static const String patienteSuivie = 'patiente suivie';
   static const String patientSuivi = 'patient suivi';
+
+  // Quick actions
+  static const String queFaire = 'Que voulez-vous faire ?';
+  static const String actionsRapides = 'Actions rapides';
+  static const String actionAjouterPatient = 'Ajouter un patient';
+  static const String actionAjouterPatientSous = 'Par son email ou son téléphone';
+  static const String actionRdvSous = 'Planifier une consultation';
+  static const String actionPrescrire = 'Prescrire un traitement';
+  static const String actionPrescrireSous = 'Ajouter un médicament à un patient';
+  static const String actionCompteRendu = 'Ajouter un compte rendu';
+  // Double quotes because of the apostrophe.
+  static const String actionCompteRenduSous = "Dans le dossier d'un patient";
+  static const String actionMessage = 'Envoyer un message';
+  static const String actionMessageSous = "À l'un de vos patients";
+
+  // Add a patient
+  static const String emailOuTelephone = 'Email ou téléphone';
+  static const String rechercher = 'Rechercher';
+  static const String ajouterAMesPatients = 'Ajouter à mes patients';
+  static const String patientAjoute = 'Patient ajouté';
+  static const String patientIntrouvable = 'Aucun patient trouvé avec cet email ou ce numéro';
+  static const String dejaDansListe = 'Ce patient est déjà dans votre liste';
+  static const String choisirPatient = 'Choisir un patient';
+
+  // Alerts
+  static const String alertes = 'Alertes';
+  static const String aTraiter = 'À traiter';
+  static const String traitees = 'Traitées';
+  static const String traitee = 'Traitée';
+  static const String marquerTraitee = 'Marquer comme traitée';
+  static const String alerteTraitee = 'Alerte marquée comme traitée';
+  static const String niveauEleve = 'Élevé';
+  static const String niveauMoyen = 'Moyen';
+  static const String niveauFaible = 'Faible';
+  static const String aucuneAlerte = 'Aucune alerte';
+
+  // Profile photo
+  static const String prendrePhoto = 'Prendre une photo';
+  static const String choisirGalerie = 'Choisir dans la galerie';
+  static const String supprimerPhoto = 'Supprimer la photo';
+  // Double quotes because of the apostrophe.
+  static const String photoErreur = "Impossible d'accéder à la photo";
 }

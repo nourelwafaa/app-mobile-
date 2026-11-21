@@ -1,5 +1,5 @@
 // Alert level of a patient.
-enum NiveauAlerte { aucune, moyen, eleve }
+enum NiveauAlerte { aucune, faible, moyen, eleve }
 
 // A patient followed by the doctor.
 class Patient {
@@ -28,6 +28,20 @@ class Patient {
   // First letter of the name, shown in the colored circle.
   String get initiale => nom[0].toUpperCase();
 
+  // Same patient with another alert level and message.
+  Patient avecAlerte(NiveauAlerte niveau, String? message) {
+    return Patient(
+      id: id,
+      nom: nom,
+      derniereActivite: derniereActivite,
+      dateNaissance: dateNaissance,
+      sexe: sexe,
+      groupeSanguin: groupeSanguin,
+      alerte: niveau,
+      messageAlerte: message,
+      douleur7Jours: douleur7Jours,
+    );
+  }
   // Age in years, computed from the birth date (null if unknown).
   int? get age {
     final d = dateNaissance;

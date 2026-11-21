@@ -6,6 +6,7 @@ import 'package:lupus_plus/features/medecin/agenda/agenda_page.dart';
 import 'package:lupus_plus/features/medecin/home/accueil_navigator.dart';
 import 'package:lupus_plus/features/medecin/patients/patients_navigator.dart';
 import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
+import 'package:lupus_plus/features/medecin/actions/quick_actions.dart';
 
 // The doctor's main screen: the current tab + the bottom bar.
 class MedecinShell extends StatefulWidget {
@@ -76,8 +77,8 @@ class _MedecinShellState extends State<MedecinShell> {
 
         // Center "+" button, docked in the middle of the bar.
         floatingActionButton: FloatingActionButton(
-          // Nothing happens until the "add patient" feature exists.
-          onPressed: () {},
+          // Opens the quick actions sheet.
+          onPressed: () => ouvrirActionsRapides(context),
           backgroundColor: AppColors.accent,
           elevation: 2,
           shape: const CircleBorder(),
