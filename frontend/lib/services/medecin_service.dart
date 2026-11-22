@@ -1,4 +1,4 @@
-
+import '../models/notification_medecin.dart';
 import '../models/alerte.dart';
 import '../models/home_data.dart';
 import '../models/medecin_profile.dart';
@@ -11,6 +11,15 @@ import '../models/traitement.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../models/resultat_recherche.dart';
+
+
+// A request to show a given day in the Agenda (a new object each time,
+// so listeners are notified even when the day is the same as before).
+class DemandeJour {
+  final DateTime jour;
+
+  DemandeJour(this.jour);
+}
 
 // A patient registered in the app, with his contact (fake registry).
 class _Inscrit {
@@ -39,6 +48,12 @@ class MedecinService {
   static final ValueNotifier<int> patientsChanged = ValueNotifier<int>(0);
   // Incremented each time an alert is handled, so the lists and counters reload.
   static final ValueNotifier<int> alertesChanged = ValueNotifier<int>(0);
+  // Incremented each time a notification is read.
+  static final ValueNotifier<int> notificationsChanged = ValueNotifier<int>(0);
+
+  // Set by the Accueil/Notifications to open the Agenda on a given day.
+  static final ValueNotifier<DemandeJour?> agendaJour =
+      ValueNotifier<DemandeJour?>(null);
   // Messages by patient id, oldest first (fake data).
   static final Map<int, List<Message>> _messages = _creerMessages();
   static int _prochainIdMessage = 100;
@@ -775,4 +790,113 @@ class MedecinService {
     _photo = octets;
     _photoEmail = octets == null ? null : user.email;
   }
+
+  // ---------- Agenda link ----------
+
+  // Day of the next planned appointment (null if there is none).
+  Future<DateTime?> prochainJourRdv() async {
+    final maintenant = DateTime.now();
+    final prochains = _rdvs
+        .where((r) =>
+            r.statut == StatutRdv.planifie && r.dateHeure.isAfter(maintenant))
+        .toList()
+      ..sort((a, b) => a.dateHeure.compareTo(b.dateHeure));
+    return prochains.isEmpty ? null : prochains.first.dateHeure;
+  }
+
+  // ---------- Notifications (fake data, kept in memory) ----------
+
+  static final List<NotificationMedecin> _notifications =
+      _creerNotifications();
+
+  static List<NotificationMedecin> _creerNotifications() {
+    final n = DateTime.now();
+    DateTime jour(int decalage, int h, int m) =>
+        DateTime(n.year, n.month, n.day + decalage, h, m);
+
+    return [
+      // Unread.
+      NotificationMedecin(
+        id: 1,
+        type: TypeNotification.message,
+        titre: 'Nouveau message',
+        description: 'Sarah Benali : Oui, les 3 prises.',
+        date: jour(0, 9, 7),
+        patientId: 1,
+      ),
+      NotificationMedecin(
+        id: 2,
+        type: TypeNotification.alerte,
+        titre: 'Nouvelle alerte',
+        description: 'Sarah Benali : douleur signalée à 8/10',
+        date: jour(0, 9, 12),
+        niveau: NiveauAlerte.eleve,
+      ),
+      NotificationMedecin(
+        id: 3,
+        type: TypeNotification.rendezVous,
+        titre: 'Rendez-vous dans 1 heure',
+        description: 'Sarah Benali · Consultation de suivi à 10:30',
+        date: jour(0, 9, 30),
+        rdvDate: jour(0, 10, 30),
+      ),
+      // Read.
+      NotificationMedecin(
+        id: 4,
+        type: TypeNotification.message,
+        titre: 'Nouveau message',
+        description: "Amira Haddad : J'ai oublié mon traitement hier soir…",
+        date: jour(-1, 21, 5),
+        patientId: 3,
+        lu: true,
+      ),
+      NotificationMedecin(
+        id: 5,
+        type: TypeNotification.alerte,
+        titre: 'Nouvelle alerte',
+        description: 'Amira Haddad : 2 prises de Plaquenil oubliées',
+        date: jour(-1, 20, 30),
+        niveau: NiveauAlerte.moyen,
+        lu: true,
+      ),
+      NotificationMedecin(
+        id: 6,
+        type: TypeNotification.rendezVous,
+        titre: 'Rendez-vous dans 1 heure',
+        description: 'Amira Haddad · Bilan annuel à 11:00',
+        date: jour(-2, 10, 0),
+        rdvDate: jour(-2, 11, 0),
+        lu: true,
+      ),
+    ];
+  }
+
+  // All notifications, newest first.
+  Future<List<NotificationMedecin>> getNotifications() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    final liste = List.of(_notifications);
+    liste.sort((a, b) => b.date.compareTo(a.date));
+    return liste;
+  }
+
+  Future<void> marquerNotificationLue(int id) async {
+    final i = _notifications.indexWhere((x) => x.id == id);
+    if (i == -1 || _notifications[i].lu) return;
+    _notifications[i].lu = true;
+    notificationsChanged.value++;
+  }
+
+  Future<void> marquerToutesLues() async {
+    var change = false;
+    for (final x in _notifications) {
+      if (!x.lu) {
+        x.lu = true;
+        change = true;
+      }
+    }
+    if (change) notificationsChanged.value++;
+  }
+
+  // Number of unread notifications (for the dot on the bell).
+  int nombreNotificationsNonLues() => _notifications.where((x) => !x.lu).length;
 }

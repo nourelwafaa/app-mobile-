@@ -7,8 +7,9 @@ import 'package:lupus_plus/models/patient.dart';
 // One row of the "recent patients" list (flat, with a divider line).
 class PatientTile extends StatelessWidget {
   final Patient patient;
+  final VoidCallback? onTap; // tap on the row
 
-  const PatientTile({super.key, required this.patient});
+  const PatientTile({super.key, required this.patient, this.onTap});
 
   // Small "Alerte" label (red = high, orange = medium).
   Widget _chipAlerte() {
@@ -70,7 +71,8 @@ class PatientTile extends StatelessWidget {
               const Icon(Icons.chevron_right, color: AppColors.textGrey),
             ],
           ),
-          // No onTap yet: nothing happens until a patient page is linked here.
+          // Tap on the row: handled by the page that shows the list.
+          onTap: onTap,
         ),
         const Divider(height: 1, color: AppColors.iconSquare),
       ],

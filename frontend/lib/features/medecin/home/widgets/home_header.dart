@@ -54,10 +54,15 @@ class HomeHeader extends StatelessWidget {
                 onTap: onMessages,
               ),
             ),
-            _IconeAvecPastille(
-              icon: Icons.notifications_none,
-              afficherPastille: false,
-              onTap: onNotifications,
+           // The red dot appears only when there are unread notifications.
+            ValueListenableBuilder<int>(
+              valueListenable: MedecinService.notificationsChanged,
+              builder: (context, value, child) => _IconeAvecPastille(
+                icon: Icons.notifications_none,
+                afficherPastille:
+                    MedecinService().nombreNotificationsNonLues() > 0,
+                onTap: onNotifications,
+              ),
             ),
           ],
         ),
