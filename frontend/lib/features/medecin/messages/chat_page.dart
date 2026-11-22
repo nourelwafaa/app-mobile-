@@ -162,6 +162,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
           GestureDetector(
+            behavior: HitTestBehavior.opaque, // the whole padded area reacts
             onTap: _ouvrirFiche,
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),

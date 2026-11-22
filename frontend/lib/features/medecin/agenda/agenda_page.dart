@@ -38,11 +38,14 @@ class _AgendaPageState extends State<AgendaPage> {
     _charger();
     // Reload when an appointment is added from another screen.
     MedecinService.rdvChanged.addListener(_charger);
+    // Show a given day when another screen asks for it.
+    MedecinService.agendaJour.addListener(_surDemandeJour);
   }
 
   @override
   void dispose() {
     MedecinService.rdvChanged.removeListener(_charger);
+    MedecinService.agendaJour.removeListener(_surDemandeJour);
     _pageController.dispose();
     super.dispose();
   }
@@ -66,6 +69,30 @@ class _AgendaPageState extends State<AgendaPage> {
     }
   }
 
+  // Another screen asked to show a day.
+  void _surDemandeJour() {
+    final demande = MedecinService.agendaJour.value;
+    if (demande != null) _allerAuJour(demande.jour);
+  }
+
+  // Selects a day and jumps to its week in the week strip.
+  void _allerAuJour(DateTime date) {
+    final jour = DateTime(date.year, date.month, date.day);
+    final lundiJour =
+        DateTime(jour.year, jour.month, jour.day - (jour.weekday - 1));
+    final lundiAuj = DateTime(
+      _aujourdhui.year,
+      _aujourdhui.month,
+      _aujourdhui.day - (_aujourdhui.weekday - 1),
+    );
+    final semaines = (lundiJour.difference(lundiAuj).inDays / 7).round();
+    final page = _pageDepart + semaines;
+
+    setState(() => _selection = jour);
+    if (page >= 0 && _pageController.hasClients) {
+      _pageController.jumpToPage(page);
+    }
+  }
   // ---------- Small helpers ----------
 
   // Monday of the week shown on a given page.

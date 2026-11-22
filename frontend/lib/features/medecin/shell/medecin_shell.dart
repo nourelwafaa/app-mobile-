@@ -7,6 +7,7 @@ import 'package:lupus_plus/features/medecin/home/accueil_navigator.dart';
 import 'package:lupus_plus/features/medecin/patients/patients_navigator.dart';
 import 'package:lupus_plus/features/medecin/profile/profile_page.dart';
 import 'package:lupus_plus/features/medecin/actions/quick_actions.dart';
+import 'package:lupus_plus/services/medecin_service.dart';
 
 // The doctor's main screen: the current tab + the bottom bar.
 class MedecinShell extends StatefulWidget {
@@ -40,11 +41,18 @@ class _MedecinShellState extends State<MedecinShell> {
     setState(() => _currentIndex = index);
   }
 
+  // Opens the Agenda tab on a given day (links from the Accueil).
+  void _ouvrirAgendaLe(DateTime jour) {
+    MedecinService.agendaJour.value = DemandeJour(jour);
+    _allerA(2);
+  }
+
   // The 4 pages, in the same order as the indexes above.
   late final List<Widget> _pages = [
     AccueilNavigator(
       navigatorKey: _accueilNavKey,
       onVoirTout: () => _allerA(1),
+      onOuvrirAgenda: _ouvrirAgendaLe,
     ),
     PatientsNavigator(
       navigatorKey: _patientsNavKey,

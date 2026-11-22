@@ -10,6 +10,9 @@ import 'package:provider/provider.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/features/medecin/messages/messages_page.dart';
 import 'package:lupus_plus/features/medecin/alerts/alertes_page.dart';
+import 'package:lupus_plus/features/medecin/messages/chat_page.dart';
+import 'package:lupus_plus/features/medecin/notifications/notifications_page.dart';
+import 'package:lupus_plus/models/patient.dart';
 
 // The doctor's home page.
 // It is a StatefulWidget because it loads data once when it opens.
@@ -17,7 +20,10 @@ class HomePage extends StatefulWidget {
   // Called when the doctor taps "Voir tout" (switches to the Patients tab).
   final VoidCallback? onVoirTout;
 
-  const HomePage({super.key, this.onVoirTout});
+  // Called to open the Agenda tab on a given day.
+  final ValueChanged<DateTime>? onOuvrirAgenda;
+
+  const HomePage({super.key, this.onVoirTout, this.onOuvrirAgenda});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -67,6 +73,31 @@ class _HomePageState extends State<HomePage> {
   void _ouvrirAlertes() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AlertesPage()),
+    );
+  }
+
+  // Opens the notifications inside the Accueil tab (the bar stays visible).
+  void _ouvrirNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationsPage(
+          onOuvrirAgenda: (jour) => widget.onOuvrirAgenda?.call(jour),
+        ),
+      ),
+    );
+  }
+
+  // Opens the Agenda on the day of the next planned appointment (or today).
+  Future<void> _ouvrirAgenda() async {
+    final jour = await _service.prochainJourRdv();
+    if (!mounted) return;
+    widget.onOuvrirAgenda?.call(jour ?? DateTime.now());
+  }
+
+  // Opens the chat with a patient (full screen, no bottom bar).
+  void _ouvrirChat(Patient patient) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => ChatPage(patient: patient)),
     );
   }
   @override
@@ -120,7 +151,11 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
         // Logo, names, avatar and greeting.
-        HomeHeader(nomMedecin: data.nomMedecin, onMessages: _ouvrirMessages),
+        HomeHeader(
+          nomMedecin: data.nomMedecin,
+          onMessages: _ouvrirMessages,
+          onNotifications: _ouvrirNotifications,
+        ),
         const SizedBox(height: 24),
 
         // The 4 counter cards in 2 columns.
@@ -141,6 +176,7 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: AppColors.cardPatients,
               value: '${data.patientsSuivis}',
               label: AppStrings.patientsSuivis,
+              onTap: widget.onVoirTout,
             ),
             StatCard(
               icon: Icons.error,
@@ -156,6 +192,7 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: AppColors.cardRdv,
               value: '${data.rendezVousAVenir}',
               label: AppStrings.rendezVousAVenir,
+              onTap: _ouvrirAgenda,
             ),
             StatCard(
               icon: Icons.trending_up,
@@ -207,7 +244,9 @@ class _HomePageState extends State<HomePage> {
 
         // One row per recent patient.
         // "..." inserts every row of the list into the children above.
-        ...data.patientsRecents.map((p) => PatientTile(patient: p)),
+        ...data.patientsRecents.map(
+          (p) => PatientTile(patient: p, onTap: () => _ouvrirChat(p)),
+        ),
       ],
     );
   }

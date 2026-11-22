@@ -78,3 +78,11 @@ String formatJourMessage(DateTime date) {
   if (jours == 1) return AppStrings.hier;
   return DateFormat('EEEE d MMMM', 'fr_FR').format(date);
 }
+
+// Group title on the notifications page: "Aujourd'hui", "Hier" or "Plus ancien".
+String formatGroupeNotification(DateTime date) {
+  final jours = _joursDepuis(date);
+  if (jours == 0) return AppStrings.aujourdhui;
+  if (jours == 1) return AppStrings.hier;
+  return AppStrings.plusAncien;
+}

@@ -175,4 +175,10 @@ class AppStrings {
   static const String supprimerPhoto = 'Supprimer la photo';
   // Double quotes because of the apostrophe.
   static const String photoErreur = "Impossible d'accéder à la photo";
+
+  // Notifications
+  static const String notifications = 'Notifications';
+  static const String toutMarquerLu = 'Tout marquer comme lu';
+  static const String aucuneNotification = 'Aucune notification';
+  static const String plusAncien = 'Plus ancien';
 }
