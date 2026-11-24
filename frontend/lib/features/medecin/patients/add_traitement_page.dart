@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/theme/form_style.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/services/traitement_service.dart';
 
 // Form to add a medication to a patient. Closes with true when saved.
+// Médecin : AddTraitementPage(patientId: ...) (fausses données jusqu'à la séance 6).
+// Patient : AddTraitementPage.patient() → POST /api/patients/me/traitements.
 class AddTraitementPage extends StatefulWidget {
-  final int patientId;
+  final int? patientId; // null = le patient connecté ajoute son médicament
 
-  const AddTraitementPage({super.key, required this.patientId});
+  const AddTraitementPage({super.key, required int this.patientId});
+
+  const AddTraitementPage.patient({super.key}) : patientId = null;
 
   @override
   State<AddTraitementPage> createState() => _AddTraitementPageState();
@@ -92,14 +99,35 @@ class _AddTraitementPageState extends State<AddTraitementPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _enregistrement = true);
 
-    await _service.addTraitement(
-      patientId: widget.patientId,
-      nom: _nomCtrl.text.trim(),
-      dosage: _dosageCtrl.text.trim(),
-      foisParJour: _fois,
-      debut: _debut,
-      fin: _fin,
-    );
+    try {
+      final patientId = widget.patientId;
+      if (patientId == null) {
+        // Patient connecté : vrai backend
+        await TraitementService(context.read<AuthProvider>().api).ajouter(
+          nom: _nomCtrl.text.trim(),
+          dosage: _dosageCtrl.text.trim(),
+          foisParJour: _fois,
+          debut: _debut,
+          fin: _fin,
+        );
+      } else {
+        await _service.addTraitement(
+          patientId: patientId,
+          nom: _nomCtrl.text.trim(),
+          dosage: _dosageCtrl.text.trim(),
+          foisParJour: _fois,
+          debut: _debut,
+          fin: _fin,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _enregistrement = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+      );
+      return;
+    }
 
     if (!mounted) return;
     Navigator.pop(context, true);
