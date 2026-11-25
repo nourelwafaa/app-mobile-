@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/models/patient.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/agenda_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 
 // Page to create a new appointment.
@@ -24,7 +27,6 @@ class NewRdvPage extends StatefulWidget {
 }
 
 class _NewRdvPageState extends State<NewRdvPage> {
-  final MedecinService _service = MedecinService();
   final _formKey = GlobalKey<FormState>();
 
   Patient? _patient;
@@ -111,12 +113,25 @@ class _NewRdvPageState extends State<NewRdvPage> {
     );
     final lieu = _lieuCtrl.text.trim();
 
-    await _service.addRendezVous(
-      patient: _patient!,
-      dateHeure: dateHeure,
-      motif: _motifCtrl.text.trim(),
-      lieu: lieu.isEmpty ? null : lieu,
-    );
+    try {
+      // POST /api/medecin/rendez-vous
+      await AgendaService(context.read<AuthProvider>().api).ajouterRendezVous(
+        patientId: _patient!.id,
+        dateHeure: dateHeure,
+        motif: _motifCtrl.text.trim(),
+        lieu: lieu.isEmpty ? null : lieu,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _enregistrement = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+
+    // Prévient l'agenda (et les autres écrans) qu'un rendez-vous a été ajouté.
+    MedecinService.rdvChanged.value++;
 
     if (!mounted) return;
     Navigator.pop(context, dateHeure);

@@ -25,6 +25,26 @@ class Patient {
     this.douleur7Jours = const [],
   });
 
+  /// Réponse de GET /api/medecin/patients (version simple, complétée en séance 6)
+  factory Patient.fromJson(Map<String, dynamic> j) {
+    final sexe = j['sexe'] as String?;
+    return Patient(
+      id: (j['id'] as num).toInt(),
+      nom: (j['nom'] as String?) ?? '',
+      derniereActivite: j['derniere_activite'] == null
+          ? DateTime.now()
+          : DateTime.parse(j['derniere_activite'] as String),
+      dateNaissance: j['date_naissance'] == null
+          ? null
+          : DateTime.parse(j['date_naissance'] as String),
+      // "femme" → "Femme" (format attendu par les écrans)
+      sexe: sexe == null || sexe.isEmpty
+          ? null
+          : sexe[0].toUpperCase() + sexe.substring(1),
+      groupeSanguin: j['groupe_sanguin'] as String?,
+    );
+  }
+
   // First letter of the name, shown in the colored circle.
   String get initiale => nom[0].toUpperCase();
 

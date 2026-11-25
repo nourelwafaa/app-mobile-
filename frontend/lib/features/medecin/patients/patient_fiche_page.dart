@@ -10,7 +10,10 @@ import 'package:lupus_plus/features/medecin/messages/chat_page.dart';
 import 'package:lupus_plus/models/document_medical.dart';
 import 'package:lupus_plus/models/patient.dart';
 import 'package:lupus_plus/models/traitement.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/agenda_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // The 3 tabs of the patient file.
 enum _Onglet { suivi, traitements, documents }
@@ -100,7 +103,20 @@ class _PatientFichePageState extends State<PatientFichePage> {
 
   // Opens "Nouveau rendez-vous" with this patient preselected.
   Future<void> _planifierRdv() async {
-    final patients = await _service.getPatients();
+    // Vrais patients suivis (GET /api/medecin/patients). La fiche elle-même
+    // utilise encore les fausses données : si ce patient n'existe pas dans la
+    // base, il n'est simplement pas présélectionné (branché en séance 6).
+    final List<Patient> patients;
+    try {
+      patients =
+          await AgendaService(context.read<AuthProvider>().api).getPatients();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+      return;
+    }
     if (!mounted) return;
     final date = await _racine.push<DateTime>(
       MaterialPageRoute(

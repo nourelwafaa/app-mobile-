@@ -4,6 +4,7 @@ const { verifierToken, autoriserRoles } = require("../middleware/authMiddleware"
 const patientController = require("../controllers/patientController");
 const suiviController = require("../controllers/suiviController");
 const traitementController = require("../controllers/traitementController");
+const agendaController = require("../controllers/agendaController");
 
 // Toutes ces routes : connecté + rôle patient
 router.use(verifierToken, autoriserRoles("patient"));
@@ -22,5 +23,9 @@ router.get("/me/traitements", traitementController.mesTraitements);
 router.post("/me/traitements", traitementController.ajouterMonTraitement);
 router.get("/me/prises/aujourdhui", traitementController.prisesDuJour);
 router.post("/me/prises", traitementController.marquerPrise);
+
+// Rendez-vous + analyses à venir (séance 4 ; créés par le médecin)
+router.get("/me/rendez-vous", agendaController.mesRendezVous);
+router.get("/me/analyses", agendaController.mesAnalyses);
 
 module.exports = router;
