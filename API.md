@@ -285,3 +285,163 @@ Réponse **201** : `"message": "Médicament ajouté"` + `traitement`
 Erreurs : **400** (`patientId` ou champ invalide), **404** (« Patient introuvable parmi vos patients »)
 
 ⚠️ À brancher dans l'app en séance 6, quand la liste des patients du médecin viendra du backend (les ids actuels de `medecin_service.dart` sont fictifs).
+
+---
+
+**Rendez-vous et analyses (séance 4)** : c'est le **médecin** qui les crée ; le patient les **consulte** seulement (ils apparaissent automatiquement dans son agenda).
+Date et heure sont renvoyées séparément : `"date": "AAAA-MM-JJ"`, `"heure": "HH:MM"`.
+
+## 12. Rendez-vous du patient
+
+`GET /api/patients/me/rendez-vous` — token obligatoire, rôle patient
+Écrans : « Mon agenda », onglet Rendez-vous de « Rappels », ligne RDV de l'accueil
+
+```json
+{
+  "message": "Rendez-vous à venir",
+  "rendez_vous": [
+    {
+      "id": 1,
+      "date": "2026-11-27",
+      "heure": "10:30",
+      "motif": "Consultation de suivi",
+      "lieu": "Cabinet Dr",
+      "statut": "planifie",
+      "medecin_id": 3,
+      "medecin_nom": "Dr Martin",
+      "medecin_specialite": "Rhumatologue"
+    }
+  ]
+}
+```
+
+- Seulement les rendez-vous **planifiés et pas encore passés**, du plus proche au plus lointain
+- Accueil : prendre le premier de la liste
+
+## 13. Analyses du patient
+
+`GET /api/patients/me/analyses` — token obligatoire, rôle patient
+Écrans : « Mon agenda », onglet Analyses de « Rappels »
+
+```json
+{
+  "message": "Analyses à venir",
+  "analyses": [
+    {
+      "id": 1,
+      "type_analyse": "Bilan sanguin",
+      "date": "2026-11-28",
+      "heure": "08:00",
+      "laboratoire": "Labo Central",
+      "statut": "prevue"
+    }
+  ]
+}
+```
+
+- Seulement les analyses **prévues et pas encore passées**
+
+## 14. Patients du médecin
+
+`GET /api/medecin/patients` — token obligatoire, rôle médecin
+Écran : liste « Patient » du formulaire « Nouveau rendez-vous »
+
+```json
+{
+  "message": "Liste des patients",
+  "patients": [
+    {
+      "id": 1,
+      "nom": "Sarah Benali",
+      "date_naissance": "2000-05-15",
+      "sexe": "femme",
+      "groupe_sanguin": "AB+",
+      "derniere_activite": "2026-11-19T15:03:25"
+    }
+  ]
+}
+```
+
+- Seulement les patients suivis (`suivi_medical`). Version simple : alertes et douleur des 7 jours en séance 6.
+
+## 15. Agenda du médecin
+
+`GET /api/medecin/rendez-vous` — token obligatoire, rôle médecin
+Écran : `AgendaPage`
+
+```json
+{
+  "message": "Agenda",
+  "rendez_vous": [
+    {
+      "id": 1,
+      "patient_id": 1,
+      "patient_nom": "Sarah Benali",
+      "date": "2026-11-27",
+      "heure": "10:30",
+      "motif": "Consultation de suivi",
+      "lieu": "Cabinet Dr",
+      "statut": "planifie"
+    }
+  ]
+}
+```
+
+- Tous les rendez-vous du médecin (passés et à venir, tous statuts), triés par date
+
+## 16. Nouveau rendez-vous (médecin)
+
+`POST /api/medecin/rendez-vous` — token obligatoire, rôle médecin
+Écran : `NewRdvPage`
+
+```json
+{
+  "patient_id": 1,
+  "date": "2026-12-02",
+  "heure": "11:00",
+  "lieu": "Cabinet",
+  "motif": "Contrôle"
+}
+```
+
+- `patient_id`, `date`, `heure`, `motif` : obligatoires ; `lieu` : optionnel
+- Le patient doit être suivi par le médecin
+
+Réponse **201** : `"message": "Rendez-vous ajouté"` + `rendez_vous` (même format qu'au §15)
+Erreurs : **400** (champ manquant ou invalide), **404** (« Patient introuvable parmi vos patients »)
+
+## 17. Terminer / annuler un rendez-vous (médecin)
+
+`PUT /api/medecin/rendez-vous/:id/statut` — token obligatoire, rôle médecin
+Écran : `AgendaPage` (menu « Marquer terminé » / « Annuler »)
+
+```json
+{ "statut": "termine" }
+```
+
+- `statut` : `termine` ou `annule`
+- Seulement un rendez-vous du médecin encore `planifie`
+
+Réponse **200** : `"message": "Rendez-vous terminé"` (ou `"Rendez-vous annulé"`) + `id`, `statut`
+Erreurs : **400** (statut invalide, ou rendez-vous déjà terminé/annulé), **404** (rendez-vous introuvable)
+
+## 18. Prescrire une analyse (médecin)
+
+`POST /api/medecin/analyses` — token obligatoire, rôle médecin
+Écran : **pas encore d'écran** (testé avec Postman)
+
+```json
+{
+  "patient_id": 1,
+  "type_analyse": "Bilan hépatique",
+  "date": "2026-12-03",
+  "heure": "08:00",
+  "laboratoire": "Labo Central"
+}
+```
+
+- `patient_id`, `type_analyse`, `date`, `heure` : obligatoires ; `laboratoire` : optionnel
+- Le patient doit être suivi par le médecin
+
+Réponse **201** : `"message": "Analyse ajoutée"` + `analyse`
+Erreurs : **400** (champ manquant ou invalide), **404** (« Patient introuvable parmi vos patients »)

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/features/medecin/agenda/new_rdv_page.dart';
+import 'package:lupus_plus/models/patient.dart';
 import 'package:lupus_plus/models/rendez_vous.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/agenda_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 
 // The doctor's agenda: a week strip + the appointments of the selected day.
@@ -19,7 +23,7 @@ class _AgendaPageState extends State<AgendaPage> {
   static const int _pageDepart = 1000;
   static const List<String> _lettres = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-  final MedecinService _service = MedecinService();
+  late final AgendaService _service; // backend (séance 4)
   late final PageController _pageController;
   late final DateTime _aujourdhui; // today (date only)
   late DateTime _selection; // selected day
@@ -31,6 +35,7 @@ class _AgendaPageState extends State<AgendaPage> {
   @override
   void initState() {
     super.initState();
+    _service = AgendaService(context.read<AuthProvider>().api);
     final now = DateTime.now();
     _aujourdhui = DateTime(now.year, now.month, now.day);
     _selection = _aujourdhui;
@@ -176,13 +181,29 @@ class _AgendaPageState extends State<AgendaPage> {
     );
 
     if (choix == null) return;
-    await _service.updateStatutRdv(r.id, choix);
+    try {
+      await _service.changerStatut(r.id, choix);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+    }
     await _charger();
   }
 
   // Opens the "new appointment" page, then shows the day of the new one.
   Future<void> _nouveauRdv() async {
-    final patients = await _service.getPatients();
+    final List<Patient> patients;
+    try {
+      patients = await _service.getPatients();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
     if (!mounted) return;
 
     final date = await Navigator.push<DateTime>(

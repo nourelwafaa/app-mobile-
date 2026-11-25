@@ -9,7 +9,9 @@ import 'package:lupus_plus/features/medecin/patients/add_traitement_page.dart';
 import 'package:lupus_plus/features/medecin/patients/choose_patient_page.dart';
 import 'package:lupus_plus/models/document_medical.dart';
 import 'package:lupus_plus/models/patient.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/agenda_service.dart';
+import 'package:provider/provider.dart';
 
 // Called by the center "+" button: shows the sheet, then runs the chosen action.
 Future<void> ouvrirActionsRapides(BuildContext context) async {
@@ -60,7 +62,15 @@ Future<void> _nouveauRdv(
   NavigatorState nav,
   ScaffoldMessengerState messenger,
 ) async {
-  final patients = await MedecinService().getPatients();
+  // Vrais patients suivis (GET /api/medecin/patients)
+  final List<Patient> patients;
+  try {
+    patients =
+        await AgendaService(nav.context.read<AuthProvider>().api).getPatients();
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    return;
+  }
   final date = await nav.push<DateTime>(
     MaterialPageRoute(
       builder: (_) => NewRdvPage(patients: patients, dateInitiale: DateTime.now()),

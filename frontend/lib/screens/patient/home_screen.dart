@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/agenda_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
 import 'agenda_screen.dart';
@@ -65,7 +67,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 16),
 
-          // Médicament : backend (prises du jour). RDV : fausses données jusqu'à la séance 4.
+          // Médicament (prises du jour) et prochain RDV : backend.
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -82,17 +84,7 @@ class HomeScreen extends StatelessWidget {
                 const Divider(color: Colors.white24, height: 24),
                 InkWell(
                   onTap: () => _go(context, const AgendaScreen()),
-                  child: const Row(children: [
-                    Icon(Icons.event, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text('RDV avec Dr Martin\nJeudi 12 nov · 10:30',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13)),
-                    ),
-                  ]),
+                  child: const _ProchainRdv(),
                 ),
               ],
             ),
@@ -176,6 +168,62 @@ class _ProchainePriseState extends State<_ProchainePrise> {
   Widget build(BuildContext context) {
     return Row(children: [
       const Icon(Icons.medication, color: Colors.white, size: 20),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(_texte,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13)),
+      ),
+    ]);
+  }
+}
+
+/// Ligne « RDV » de la carte Aujourd'hui :
+/// prochain rendez-vous planifié (GET /api/patients/me/rendez-vous).
+class _ProchainRdv extends StatefulWidget {
+  const _ProchainRdv();
+
+  @override
+  State<_ProchainRdv> createState() => _ProchainRdvState();
+}
+
+class _ProchainRdvState extends State<_ProchainRdv> {
+  String _texte = 'Chargement…';
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  Future<void> _charger() async {
+    String texte;
+    try {
+      final rdvs = await AgendaService(context.read<AuthProvider>().api)
+          .getMesRendezVous();
+      if (rdvs.isEmpty) {
+        texte = 'Aucun rendez-vous à venir';
+      } else {
+        final r = rdvs.first; // déjà trié du plus proche au plus lointain
+        final titre = r.docteur != null ? 'RDV avec ${r.docteur}' : 'RDV : ${r.motif}';
+        // "Jeudi 12 nov · 10:30"
+        final quand =
+            '${cap(DateFormat('EEEE d MMM', 'fr_FR').format(r.dateHeure).replaceAll('.', ''))}'
+            ' · ${DateFormat('HH:mm').format(r.dateHeure)}';
+        texte = '$titre\n$quand';
+      }
+    } catch (_) {
+      texte = 'Rendez-vous indisponibles';
+    }
+    if (mounted) setState(() => _texte = texte);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      const Icon(Icons.event, color: Colors.white, size: 20),
       const SizedBox(width: 8),
       Expanded(
         child: Text(_texte,

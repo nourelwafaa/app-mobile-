@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/rendez_vous.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/agenda_service.dart';
 import '../../widgets/common.dart';
 
-/// Mon agenda. TODO : GET/POST des rendez-vous quand les routes existeront.
+/// Mon agenda : rendez-vous et analyses à venir (créés par le médecin, backend).
 class AgendaScreen extends StatefulWidget {
   const AgendaScreen({super.key});
 
@@ -11,9 +15,85 @@ class AgendaScreen extends StatefulWidget {
   State<AgendaScreen> createState() => _AgendaScreenState();
 }
 
+/// Une ligne « À venir » (rendez-vous ou analyse)
+class _Element {
+  final IconData icone;
+  final String titre, detail;
+  final DateTime dateHeure;
+  const _Element(this.icone, this.titre, this.detail, this.dateHeure);
+}
+
 class _AgendaScreenState extends State<AgendaScreen> {
   final DateTime _today = DateTime.now();
   late DateTime _selected = _today;
+
+  bool _chargement = true;
+  String? _erreur;
+  List<_Element> _elements = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  // "Jeu 12 nov · 10:30"
+  static String _quand(DateTime d) =>
+      '${cap(DateFormat('EEE d MMM', 'fr_FR').format(d).replaceAll('.', ''))}'
+      ' · ${DateFormat('HH:mm').format(d)}';
+
+  /// GET /api/patients/me/rendez-vous + /api/patients/me/analyses
+  Future<void> _charger() async {
+    setState(() {
+      _chargement = true;
+      _erreur = null;
+    });
+    try {
+      final service = AgendaService(context.read<AuthProvider>().api);
+      final r = await Future.wait([
+        service.getMesRendezVous(),
+        service.getMesAnalyses(),
+      ]);
+      final rdvs = r[0] as List<RdvPatient>;
+      final analyses = r[1] as List<Analyse>;
+      final elements = <_Element>[
+        for (final v in rdvs)
+          _Element(
+            Icons.event,
+            v.motif,
+            [
+              [v.docteur ?? v.lieu, v.medecinSpecialite]
+                  .whereType<String>()
+                  .where((s) => s.isNotEmpty)
+                  .join(' · '),
+              _quand(v.dateHeure),
+            ].where((s) => s.isNotEmpty).join('\n'),
+            v.dateHeure,
+          ),
+        for (final a in analyses)
+          _Element(
+            Icons.science_outlined,
+            a.type,
+            [a.laboratoire, _quand(a.dateHeure)]
+                .whereType<String>()
+                .where((s) => s.isNotEmpty)
+                .join('\n'),
+            a.dateHeure,
+          ),
+      ]..sort((a, b) => a.dateHeure.compareTo(b.dateHeure));
+      if (!mounted) return;
+      setState(() {
+        _elements = elements;
+        _chargement = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erreur = e.toString();
+        _chargement = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,46 +154,50 @@ class _AgendaScreenState extends State<AgendaScreen> {
             const Text('À venir',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            const SectionCard(
-              child: Row(children: [
-                Icon(Icons.event, color: AppColors.primary),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Consultation de suivi',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text('Dr Martin · Rhumatologue\nJeu 12 nov · 10:30',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.muted)),
-                    ],
+            if (_chargement)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_erreur != null)
+              Column(children: [
+                Text(_erreur!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                TextButton(onPressed: _charger, child: const Text('Réessayer')),
+              ])
+            else if (_elements.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('Aucun rendez-vous ni analyse à venir',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              )
+            else
+              for (final e in _elements)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SectionCard(
+                    child: Row(children: [
+                      Icon(e.icone, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.titre,
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w700)),
+                            Text(e.detail,
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.muted)),
+                          ],
+                        ),
+                      ),
+                    ]),
                   ),
                 ),
-              ]),
-            ),
             const SizedBox(height: 10),
-            const SectionCard(
-              child: Row(children: [
-                Icon(Icons.science_outlined, color: AppColors.primary),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Bilan sanguin',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text('Labo Central\nVen 20 nov · 08:00',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.muted)),
-                    ],
-                  ),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 20),
             PrimaryButton(
               label: '+ Ajouter un rendez-vous',
               onPressed: () => showSnack(context, 'Bientôt disponible'),
