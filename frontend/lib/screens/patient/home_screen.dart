@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
 import 'agenda_screen.dart';
 import 'dossier_screen.dart';
@@ -64,7 +65,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 16),
 
-          // TODO : données réelles quand les routes traitements / rendez-vous existeront
+          // Médicament : backend (prises du jour). RDV : fausses données jusqu'à la séance 4.
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -77,17 +78,7 @@ class HomeScreen extends StatelessWidget {
                 const Text("Aujourd'hui",
                     style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(height: 8),
-                const Row(children: [
-                  Icon(Icons.medication, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Plaquenil 200 mg\nProchaine prise à 08:00',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                  ),
-                ]),
+                const _ProchainePrise(),
                 const Divider(color: Colors.white24, height: 24),
                 InkWell(
                   onTap: () => _go(context, const AgendaScreen()),
@@ -140,5 +131,59 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Ligne « médicament » de la carte Aujourd'hui :
+/// première prise du jour pas encore faite (GET /api/patients/me/prises/aujourdhui).
+class _ProchainePrise extends StatefulWidget {
+  const _ProchainePrise();
+
+  @override
+  State<_ProchainePrise> createState() => _ProchainePriseState();
+}
+
+class _ProchainePriseState extends State<_ProchainePrise> {
+  String _texte = 'Chargement…';
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  Future<void> _charger() async {
+    String texte;
+    try {
+      final prises = await TraitementService(context.read<AuthProvider>().api)
+          .getPrisesDuJour();
+      final aFaire = prises.where((p) => !p.pris);
+      if (prises.isEmpty) {
+        texte = "Aucun médicament prévu aujourd'hui";
+      } else if (aFaire.isEmpty) {
+        texte = 'Toutes les prises du jour sont faites';
+      } else {
+        final p = aFaire.first;
+        texte = '${p.nom} ${p.dosage}\nProchaine prise à ${p.heure}';
+      }
+    } catch (_) {
+      texte = 'Traitements indisponibles';
+    }
+    if (mounted) setState(() => _texte = texte);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      const Icon(Icons.medication, color: Colors.white, size: 20),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(_texte,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13)),
+      ),
+    ]);
   }
 }

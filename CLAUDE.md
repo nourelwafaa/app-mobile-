@@ -35,14 +35,14 @@ app-mobile-/
 │   ├── server.js
 │   ├── config/db.js        # Pool pg ; les DATE sont renvoyées en texte "AAAA-MM-JJ" (types.setTypeParser(1082))
 │   ├── middleware/authMiddleware.js   # verifierToken, autoriserRoles("patient" | "medecin")
-│   ├── controllers/        # authController, patientController, suiviController
-│   ├── routes/             # authRoutes (/api/auth), patientRoutes (/api/patients)
-│   └── database/           # 01 à 05 *.sql : le schéma complet (23 tables)
+│   ├── controllers/        # authController, patientController, suiviController, traitementController
+│   ├── routes/             # authRoutes (/api/auth), patientRoutes (/api/patients), medecinRoutes (/api/medecin)
+│   └── database/           # 01 à 05 *.sql : le schéma complet (23 tables) ; 06_index_prises.sql (unicité des prises)
 └── frontend/lib/
     ├── core/api_client.dart        # ApiClient (get/post/put, token Bearer, erreurs → ApiException)
     ├── providers/auth_provider.dart # kDemoMode = false : l'auth utilise le vrai backend
     ├── models/
-    ├── services/           # MON dossier : appels API (suivi_service.dart…) ; medecin_service.dart = fausses données des binômes
+    ├── services/           # MON dossier : appels API (suivi_service.dart, traitement_service.dart…) ; medecin_service.dart = fausses données des binômes
     ├── screens/            # écrans patient + auth (binômes)
     └── features/medecin/   # écrans médecin (binômes)
 ```
@@ -74,10 +74,10 @@ app-mobile-/
 - [x] Base de données : 23 tables (`users`, `patients`, `professionnels`, `suivi_medical`, `suivi_quotidien`, `symptomes`, `journal_sante`, `alertes`, `traitements`, `rappels_medicament`, `prises_medicament`, `rendez_vous`, `analyses`, `documents_medicaux`, `acces_dossier`, `etablissements`, `messages`, `publications`, `commentaires`, `conseils`, `lupia_messages`, `notifications`, `reset_mot_de_passe`)
 - [x] Séance 1 : `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/patients/me`, `PUT /api/patients/me/infos` — branchés dans l'app
 - [x] Séance 2 : `POST /api/patients/me/suivi`, `GET /api/patients/me/suivi/aujourdhui`, `GET /api/patients/me/stats?periode=7|30|90` — branchés (`suivi_screen.dart`, `stats_screen.dart`). Douleur ≥ 8 → alerte dans `alertes`.
-- [ ] **Séance 3 (prochaine)** : traitements, rappels, suivi des prises. Écrans concernés : `screens/patient/rappels_screen.dart`, `screens/patient/home_screen.dart`, `features/medecin/patients/add_traitement_page.dart`, `models/traitement.dart`, partie traitements de `services/medecin_service.dart`. Le médecin prescrit (seulement à un patient qu'il suit), le patient peut aussi ajouter ses médicaments.
-- [ ] Séance 4 : rendez-vous, analyses, agenda (`features/medecin/agenda/`, `screens/patient/agenda_screen.dart`)
+- [x] Séance 3 : `GET/POST /api/patients/me/traitements`, `GET /api/patients/me/prises/aujourdhui`, `POST /api/patients/me/prises`, `GET/POST /api/medecin/patients/:patientId/traitements` (patient suivi dans `suivi_medical`). Heures de rappel automatiques selon `fois_par_jour` (1 → 08:00 ; 2 → 08:00, 20:00 ; 3 → 08:00, 14:00, 20:00…). Branchés côté patient : `rappels_screen.dart` (onglet Médicaments), carte « Aujourd'hui » de `home_screen.dart`, `AddTraitementPage.patient()`. **Côté médecin, `AddTraitementPage` et la fiche patient restent sur `medecin_service.dart` : à brancher en séance 6.**
+- [ ] **Séance 4 (prochaine)** : rendez-vous, analyses, agenda (`features/medecin/agenda/`, `screens/patient/agenda_screen.dart`, onglets Rendez-vous / Analyses de `rappels_screen.dart`, ligne RDV de l'accueil)
 - [ ] Séance 5 : dossier médical + partage (`add_document_page.dart`, `dossier_screen.dart`)
-- [ ] Séance 6 : espace médecin réel (ajout de patient, liste, fiche, alertes, tableau de bord) — remplacer les fausses données de `medecin_service.dart`
+- [ ] Séance 6 : espace médecin réel (ajout de patient, liste, fiche, alertes, tableau de bord) — remplacer les fausses données de `medecin_service.dart` (dont les traitements : API déjà prêtes, voir API.md §11)
 - [ ] Séance 7 : messagerie médecin ↔ patient
 - [ ] Séance 8 : recherche, communauté, conseils, LupIA, notifications
 - [ ] Séance 9 : mot de passe oublié
