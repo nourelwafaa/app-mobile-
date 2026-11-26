@@ -41,11 +41,14 @@ Il est mis à jour à chaque nouvelle API.
 
 - `role` : `patient` ou `medecin`
 - `telephone` et `date_naissance` sont optionnels
-- Mot de passe : 6 caractères minimum
+- Mot de passe : **8 caractères minimum, au moins une lettre et un chiffre** (72 max)
+- Email vérifié par le serveur ; nom de 2 à 150 caractères ; date de naissance réelle, pas dans le futur
+- Téléphone enregistré avec **seulement les chiffres** (`"0661 23 45 67"` → `"0661234567"`), 8 à 15 chiffres
+- Limite : 20 inscriptions par heure depuis un même appareil (**429** au-delà)
 - L'écran « Créer un compte » et l'écran « Type de compte » sont séparés : garder les infos du 1er écran et appeler `register` après le choix du rôle.
 
 Réponse **201** : `message`, `token`, `user`
-Erreurs : **400** (champ manquant), **409** (email ou téléphone déjà utilisé)
+Erreurs : **400** (champ manquant ou invalide), **409** (email ou téléphone déjà utilisé), **429** (trop d'inscriptions)
 
 ## 2. Connexion
 
@@ -58,10 +61,11 @@ Erreurs : **400** (champ manquant), **409** (email ou téléphone déjà utilis�
 }
 ```
 
-- `identifiant` = email **ou** numéro de téléphone
+- `identifiant` = email **ou** numéro de téléphone (espaces et tirets ignorés)
+- Les comptes créés avant la séance de sécurité gardent leur ancien mot de passe
 
 Réponse **200** : `message`, `token`, `user`
-Erreur : **401** (identifiant ou mot de passe incorrect)
+Erreurs : **401** (identifiant ou mot de passe incorrect), **429** (« Trop de tentatives de connexion. Réessayez dans 15 minutes. » : 10 échecs en 15 min)
 
 👉 Garder le `token` dans l'app (ex : `shared_preferences`) et le supprimer à la déconnexion.
 
@@ -373,12 +377,14 @@ Date et heure sont renvoyées séparément : `"date": "AAAA-MM-JJ"`, `"heure": "
 
 `GET /api/medecin/patients/:patientId` → `{ "message": "Patient", "patient": {...} }` (même format) ; **404** si ce n'est pas un patient du médecin
 
-## 14 bis. Rechercher un patient à ajouter
+## 14 bis. Rechercher un patient à ajouter (consentement)
 
 `GET /api/medecin/patients/recherche?identifiant=sarah@test.com` — token obligatoire, rôle médecin
 Écran : « Ajouter un patient »
 
 - `identifiant` = email exact **ou** numéro de téléphone (les espaces et tirets sont ignorés, 8 chiffres minimum)
+- Confidentialité : tant que le patient n'a pas accepté, seuls `id` et `nom` sont renvoyés (le reste vaut `null`)
+- `demande_en_attente` : une demande a déjà été envoyée, le patient n'a pas encore répondu
 
 Réponse **200** :
 
@@ -386,13 +392,14 @@ Réponse **200** :
 {
   "message": "Patient trouvé",
   "patient": { "id": 4, "nom": "Rania Ouali", "date_naissance": null, "sexe": null, "groupe_sanguin": null },
-  "deja_suivi": false
+  "deja_suivi": false,
+  "demande_en_attente": false
 }
 ```
 
 Erreurs : **400** (identifiant vide ou téléphone trop court), **404** (« Aucun patient trouvé avec cet identifiant »)
 
-## 14 ter. Ajouter un patient
+## 14 ter. Demander à suivre un patient (consentement)
 
 `POST /api/medecin/patients` — token obligatoire, rôle médecin
 
@@ -400,10 +407,11 @@ Erreurs : **400** (identifiant vide ou téléphone trop court), **404** (« Aucu
 { "patient_id": 4 }
 ```
 
-- Le médecin suit le patient (`suivi_medical`) **et** a accès à son dossier (`acces_dossier`)
+- Envoie une **demande de suivi** (table `demandes_suivi`). Le médecin **ne voit rien** du patient tant que celui-ci n'a pas accepté (§32-33).
+- À l'acceptation : `suivi_medical` + `acces_dossier` sont créés. Une demande refusée peut être renvoyée.
 
-Réponse **201** : `"message": "Patient ajouté"` + `patient` (même format qu'au §14)
-Erreurs : **400** (`patient_id` manquant), **404** (patient introuvable), **409** (« Ce patient est déjà dans votre liste »)
+Réponse **201** : `"message": "Demande envoyée au patient"` + `demande` (`id`, `patient_id`, `statut`)
+Erreurs : **400** (`patient_id` manquant), **404** (patient introuvable), **409** (« Ce patient est déjà dans votre liste » ou « Demande déjà envoyée, en attente de la réponse du patient »)
 
 ## 15. Agenda du médecin
 
@@ -728,3 +736,44 @@ Erreurs : **400** (« Le message est vide », trop long > 2000 caractères), **4
 `POST /api/medecin/messages/:patientId` avec `{ "texte": "..." }` → **201** `"Message envoyé"`
 
 Erreurs : **400** (message vide ou trop long), **404** (« Patient introuvable parmi vos patients »)
+
+---
+
+**Consentement du patient (sécurité)** : un médecin ne voit le dossier d'un patient qu'après que le patient a **accepté** sa demande.
+
+## 32. Demandes de suivi (patient)
+
+`GET /api/patients/me/demandes` — token obligatoire, rôle patient
+Écran : bandeau « Dr … souhaite vous suivre » sur l'accueil patient
+
+```json
+{
+  "message": "Demandes de suivi",
+  "demandes": [
+    {
+      "id": 1,
+      "medecin_id": 3,
+      "medecin_nom": "Karim Martin",
+      "medecin_specialite": "Rhumatologue",
+      "medecin_etablissement": null,
+      "date": "2026-11-26T16:20:00"
+    }
+  ]
+}
+```
+
+- Seulement les demandes **en attente**
+
+## 33. Accepter / refuser une demande (patient)
+
+`PUT /api/patients/me/demandes/:id` — token obligatoire, rôle patient
+
+```json
+{ "decision": "accepter" }
+```
+
+- `decision` : `accepter` ou `refuser`
+- Accepter : le médecin suit le patient et a accès à son dossier ; il peut aussi lui écrire
+
+Réponse **200** : `"message": "Demande acceptée : ce médecin vous suit maintenant"` (ou `"Demande refusée"`) + `id`, `statut`
+Erreurs : **400** (décision invalide), **404** (« Demande introuvable ou déjà traitée »)

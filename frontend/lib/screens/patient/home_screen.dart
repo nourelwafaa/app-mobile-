@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../models/demande_suivi.dart';
 import '../../services/agenda_service.dart';
+import '../../services/demandes_service.dart';
 import '../../services/messages_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
@@ -70,6 +72,9 @@ class HomeScreen extends StatelessWidget {
           const Text('Prenez soin de vous aujourd\'hui',
               style: TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 16),
+
+          // Demandes de suivi des médecins (consentement), visible seulement s'il y en a
+          const _DemandesSuivi(),
 
           // Médicament (prises du jour) et prochain RDV : backend.
           Container(
@@ -301,6 +306,152 @@ class _IconeMessagesState extends State<_IconeMessages> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Bandeau « demande de suivi » de l'accueil patient (consentement) :
+/// un médecin ne voit le dossier qu'après « Accepter ». Rien n'est affiché s'il n'y a pas de demande.
+class _DemandesSuivi extends StatefulWidget {
+  const _DemandesSuivi();
+
+  @override
+  State<_DemandesSuivi> createState() => _DemandesSuiviState();
+}
+
+class _DemandesSuiviState extends State<_DemandesSuivi> {
+  late final DemandesService _service;
+  List<DemandeSuivi> _demandes = [];
+  final Set<int> _envoi = {}; // demandes en cours de réponse
+
+  @override
+  void initState() {
+    super.initState();
+    _service = DemandesService(context.read<AuthProvider>().api);
+    _charger();
+  }
+
+  /// GET /api/patients/me/demandes
+  Future<void> _charger() async {
+    try {
+      final liste = await _service.getDemandes();
+      if (mounted) setState(() => _demandes = liste);
+    } catch (_) {
+      // Pas de bandeau si le serveur ne répond pas.
+    }
+  }
+
+  /// PUT /api/patients/me/demandes/:id
+  Future<void> _repondre(DemandeSuivi d, bool accepter) async {
+    if (!accepter) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Refuser la demande ?'),
+          content: Text('${d.docteur} ne pourra pas voir votre dossier médical.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Annuler')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Refuser')),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+
+    setState(() => _envoi.add(d.id));
+    try {
+      final message = await _service.repondre(d.id, accepter: accepter);
+      if (!mounted) return;
+      showSnack(context, message);
+      setState(() => _demandes.removeWhere((x) => x.id == d.id));
+    } catch (e) {
+      if (mounted) showSnack(context, e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => _envoi.remove(d.id));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_demandes.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: [
+        for (final d in _demandes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.soft,
+                      child: Icon(Icons.person_add_alt_1,
+                          color: AppColors.primary, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${d.docteur} souhaite vous suivre',
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                          if ((d.specialite ?? '').isNotEmpty)
+                            Text(d.specialite!,
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.muted)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'En acceptant, ce médecin pourra voir votre dossier médical, '
+                    'vos suivis et vos traitements, et vous écrire.',
+                    style: TextStyle(fontSize: 11, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _envoi.contains(d.id)
+                            ? null
+                            : () => _repondre(d, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.border),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text('Refuser'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _envoi.contains(d.id)
+                            ? null
+                            : () => _repondre(d, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text('Accepter'),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

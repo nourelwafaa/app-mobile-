@@ -109,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 AppField(
                   label: 'Mot de passe',
-                  hint: '6 caractères minimum',
+                  hint: '8 caractères, lettres et chiffres',
                   icon: Icons.lock_outline,
                   controller: _pwd,
                   obscure: _hide,
@@ -118,9 +118,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         size: 18),
                     onPressed: () => setState(() => _hide = !_hide),
                   ),
-                  validator: (v) => (v == null || v.length < 6)
-                      ? 'Au moins 6 caractères'
-                      : null,
+                  // Même règle que le serveur (backend/utils/validation.js)
+                  validator: (v) {
+                    if (v == null || v.length < 8) return 'Au moins 8 caractères';
+                    if (v.length > 72) return '72 caractères maximum';
+                    if (!RegExp(r'[A-Za-zÀ-ÿ]').hasMatch(v) ||
+                        !RegExp(r'\d').hasMatch(v)) {
+                      return 'Au moins une lettre et un chiffre';
+                    }
+                    return null;
+                  },
                 ),
                 AppField(
                   label: 'Confirmer le mot de passe',

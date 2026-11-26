@@ -4,6 +4,11 @@ import 'patient.dart';
 class ResultatRecherche {
   final Patient patient;
   final bool dejaSuivi; // true = already in the doctor's list
+  final bool demandeEnAttente; // demande de suivi envoyée, le patient n'a pas encore répondu
 
-  const ResultatRecherche({required this.patient, required this.dejaSuivi});
+  const ResultatRecherche({
+    required this.patient,
+    required this.dejaSuivi,
+    this.demandeEnAttente = false,
+  });
 }

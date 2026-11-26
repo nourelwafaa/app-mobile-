@@ -154,7 +154,24 @@ class _AddPatientPageState extends State<AddPatientPage> {
                 color: AppColors.warningText,
               ),
             )
-          else
+          // Consentement : demande déjà envoyée, le patient n'a pas répondu
+          else if (r.demandeEnAttente)
+            const Text(
+              AppStrings.demandeEnAttente,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.warningText,
+              ),
+            )
+          else ...[
+            const Text(
+              AppStrings.infoConsentement,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+            ),
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _ajout ? null : _ajouter,
               style: ElevatedButton.styleFrom(
@@ -178,6 +195,7 @@ class _AddPatientPageState extends State<AddPatientPage> {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
             ),
+          ],
         ],
       ),
     );

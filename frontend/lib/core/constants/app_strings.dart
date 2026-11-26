@@ -154,8 +154,12 @@ class AppStrings {
   // Add a patient
   static const String emailOuTelephone = 'Email ou téléphone';
   static const String rechercher = 'Rechercher';
-  static const String ajouterAMesPatients = 'Ajouter à mes patients';
-  static const String patientAjoute = 'Patient ajouté';
+  static const String ajouterAMesPatients = 'Envoyer une demande de suivi';
+  static const String patientAjoute = 'Demande envoyée au patient';
+  static const String demandeEnAttente =
+      'Demande envoyée : en attente de la réponse du patient';
+  static const String infoConsentement =
+      "Le patient doit accepter votre demande avant que vous puissiez voir son dossier.";
   static const String patientIntrouvable = 'Aucun patient trouvé avec cet email ou ce numéro';
   static const String dejaDansListe = 'Ce patient est déjà dans votre liste';
   static const String choisirPatient = 'Choisir un patient';
