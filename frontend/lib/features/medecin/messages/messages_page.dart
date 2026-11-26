@@ -4,7 +4,10 @@ import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/utils/date_format.dart';
 import 'package:lupus_plus/features/medecin/messages/chat_page.dart';
 import 'package:lupus_plus/models/conversation.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/services/messages_service.dart';
+import 'package:provider/provider.dart';
 
 // The conversations list ("Messages").
 class MessagesPage extends StatefulWidget {
@@ -15,7 +18,7 @@ class MessagesPage extends StatefulWidget {
 }
 
 class _MessagesPageState extends State<MessagesPage> {
-  final MedecinService _service = MedecinService();
+  late final MessagesService _service; // backend (séance 7)
 
   List<Conversation> _conversations = [];
   bool _chargement = true;
@@ -25,6 +28,7 @@ class _MessagesPageState extends State<MessagesPage> {
   @override
   void initState() {
     super.initState();
+    _service = MessagesService(context.read<AuthProvider>().api);
     _charger();
     // Reload when a message is sent or read (even from another screen).
     MedecinService.messagesChanged.addListener(_charger);

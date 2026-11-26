@@ -12,4 +12,12 @@ class Conversation {
     required this.dernierMessage,
     required this.nonLus,
   });
+
+  /// Réponse de GET /api/medecin/conversations (séance 7)
+  factory Conversation.fromJson(Map<String, dynamic> j) => Conversation(
+        patient: Patient.fromJson(j['patient'] as Map<String, dynamic>),
+        dernierMessage:
+            Message.fromJson(j['dernier_message'] as Map<String, dynamic>),
+        nonLus: (j['non_lus'] as num?)?.toInt() ?? 0,
+      );
 }

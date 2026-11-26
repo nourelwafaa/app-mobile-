@@ -662,3 +662,69 @@ Erreur : **404** (« Alerte introuvable », ou alerte d'un patient non suivi)
 
 Réponse **200** : `"message": "Profil mis à jour"` + `profil`
 Erreurs : **400** (nom manquant), **409** (« Ce numéro de téléphone est déjà utilisé »)
+
+---
+
+**Messagerie (séance 7)** : uniquement entre un médecin et un patient qu'il suit (`suivi_medical`).
+Pas de temps réel : l'app recharge la discussion ouverte **toutes les 5 secondes**.
+Format d'un message : `{ "id", "de_moi", "texte", "date": "AAAA-MM-JJTHH:MM:SS", "lu" }` (`de_moi` = envoyé par la personne connectée).
+
+## 28. Mes médecins (patient)
+
+`GET /api/patients/me/medecins` — token obligatoire, rôle patient
+Écran : « Messages » du patient (icône 💬 de l'accueil)
+
+```json
+{
+  "message": "Mes médecins",
+  "medecins": [
+    {
+      "medecin_id": 3,
+      "medecin_nom": "Karim Martin",
+      "medecin_specialite": "Rhumatologue",
+      "non_lus": 1,
+      "dernier_message": { "id": 7, "de_moi": false, "texte": "Bonjour Sarah…", "date": "2026-11-26T15:02:11", "lu": false }
+    }
+  ]
+}
+```
+
+- `dernier_message` vaut `null` s'il n'y a pas encore de message
+- Point rouge de l'accueil patient = somme des `non_lus`
+
+## 29. Discussion avec un médecin (patient)
+
+`GET /api/patients/me/messages/:medecinId` → `{ "message": "Discussion", "messages": [...] }` (du plus ancien au plus récent ; les messages du médecin passent en « lu »)
+
+`POST /api/patients/me/messages/:medecinId` avec `{ "texte": "Bonjour docteur" }` → **201** `"Message envoyé"` + `envoye`
+
+Erreurs : **400** (« Le message est vide », trop long > 2000 caractères), **403** (« Vous ne pouvez écrire qu'à un médecin qui vous suit »)
+
+## 30. Conversations (médecin)
+
+`GET /api/medecin/conversations` — token obligatoire, rôle médecin
+Écran : « Messages » du médecin
+
+```json
+{
+  "message": "Conversations",
+  "conversations": [
+    {
+      "patient": { "id": 1, "nom": "Sarah Benali", "...": "même format qu'au §14" },
+      "dernier_message": { "id": 6, "de_moi": false, "texte": "Bonjour docteur…", "date": "2026-11-26T14:58:40", "lu": false },
+      "non_lus": 1
+    }
+  ]
+}
+```
+
+- Patients suivis avec au moins un message, discussion la plus récente d'abord
+- Point rouge de l'accueil médecin : `messages_non_lus` dans `GET /api/medecin/accueil` (§25)
+
+## 31. Discussion avec un patient (médecin)
+
+`GET /api/medecin/messages/:patientId` → messages (les messages du patient passent en « lu »)
+
+`POST /api/medecin/messages/:patientId` avec `{ "texte": "..." }` → **201** `"Message envoyé"`
+
+Erreurs : **400** (message vide ou trop long), **404** (« Patient introuvable parmi vos patients »)

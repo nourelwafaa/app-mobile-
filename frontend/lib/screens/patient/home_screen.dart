@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/agenda_service.dart';
+import '../../services/messages_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
 import 'agenda_screen.dart';
 import 'dossier_screen.dart';
 import 'lupia_screen.dart';
+import 'messages_screen.dart';
 import 'stats_screen.dart';
 import 'suivi_screen.dart';
 import 'trouver_pro_screen.dart';
@@ -52,6 +54,8 @@ class HomeScreen extends StatelessWidget {
                         color: AppColors.primary,
                         fontSize: 16)),
               ),
+              // Messages avec ses médecins (séance 7), point rouge si non lus
+              const _IconeMessages(),
               IconButton(
                 icon: const Icon(Icons.notifications_none,
                     color: AppColors.primary),
@@ -233,5 +237,70 @@ class _ProchainRdvState extends State<_ProchainRdv> {
                 fontSize: 13)),
       ),
     ]);
+  }
+}
+
+/// Icône « Messages » de l'accueil patient (séance 7), même design que chez le médecin :
+/// point rouge s'il y a des messages non lus. Ouvre « Messages » (ses médecins).
+class _IconeMessages extends StatefulWidget {
+  const _IconeMessages();
+
+  @override
+  State<_IconeMessages> createState() => _IconeMessagesState();
+}
+
+class _IconeMessagesState extends State<_IconeMessages> {
+  static const Color _rouge = Color(0xFFD4246B); // même rouge que chez le médecin
+  bool _nonLus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  /// GET /api/patients/me/medecins → total des non-lus
+  Future<void> _charger() async {
+    try {
+      final n = await MessagesService(context.read<AuthProvider>().api)
+          .nombreNonLusPatient();
+      if (mounted) setState(() => _nonLus = n > 0);
+    } catch (_) {
+      // Pas de point rouge si le serveur ne répond pas.
+    }
+  }
+
+  Future<void> _ouvrir() async {
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => const MessagesScreen()),
+    );
+    await _charger(); // les messages lus ne comptent plus
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: _ouvrir,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+          if (_nonLus)
+            Positioned(
+              right: -1,
+              top: -1,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: _rouge,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.bg, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
