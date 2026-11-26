@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { normaliserTelephone, telephoneValide } = require("../utils/validation");
 
 // Espace médecin (séance 6) : ses patients, la recherche et l'ajout d'un patient.
 
@@ -83,6 +84,8 @@ exports.unPatient = async (req, res) => {
 
 // GET /api/medecin/patients/recherche?identifiant=... : écran « Ajouter un patient »
 // Cherche un patient inscrit par email exact ou par numéro de téléphone (au moins 8 chiffres).
+// Confidentialité : tant que le patient n'a pas accepté, on ne renvoie que son nom
+// (pas d'âge, de sexe ni de groupe sanguin).
 exports.rechercherPatient = async (req, res) => {
     const saisie = String(req.query.identifiant || "").trim().toLowerCase();
     if (!saisie) {
@@ -104,7 +107,11 @@ exports.rechercherPatient = async (req, res) => {
                     EXISTS (
                         SELECT 1 FROM suivi_medical sm
                         WHERE sm.medecin_id = $3 AND sm.patient_id = u.id
-                    ) AS deja_suivi
+                    ) AS deja_suivi,
+                    EXISTS (
+                        SELECT 1 FROM demandes_suivi d
+                        WHERE d.medecin_id = $3 AND d.patient_id = u.id AND d.statut = 'en_attente'
+                    ) AS demande_en_attente
              FROM users u
              JOIN patients p ON p.user_id = u.id
              WHERE u.role = 'patient'
@@ -116,55 +123,60 @@ exports.rechercherPatient = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ message: "Aucun patient trouvé avec cet identifiant" });
         }
-        const { deja_suivi, ...patient } = result.rows[0];
-        res.json({ message: "Patient trouvé", patient, deja_suivi });
+        const { deja_suivi, demande_en_attente, ...infos } = result.rows[0];
+        const patient = deja_suivi
+            ? infos
+            : { id: infos.id, nom: infos.nom, date_naissance: null, sexe: null, groupe_sanguin: null };
+        res.json({ message: "Patient trouvé", patient, deja_suivi, demande_en_attente });
     } catch (error) {
         console.error("Erreur recherche patient :", error.message);
         res.status(500).json({ message: "Erreur serveur" });
     }
 };
 
-// POST /api/medecin/patients : le médecin commence à suivre un patient
-// Corps : { patient_id }. Crée aussi l'accès au dossier médical (acces_dossier).
+// POST /api/medecin/patients : le médecin DEMANDE à suivre un patient
+// Corps : { patient_id }. Le patient doit accepter (PUT /api/patients/me/demandes/:id)
+// avant que le médecin voie son dossier. Une demande refusée peut être renvoyée.
 exports.ajouterPatient = async (req, res) => {
     const patientId = Number(req.body?.patient_id);
     if (!Number.isInteger(patientId) || patientId <= 0) {
         return res.status(400).json({ message: "patient_id est obligatoire" });
     }
 
-    const client = await db.connect();
     try {
-        const patient = await client.query("SELECT 1 FROM patients WHERE user_id = $1", [patientId]);
+        const patient = await db.query("SELECT 1 FROM patients WHERE user_id = $1", [patientId]);
         if (patient.rows.length === 0) {
             return res.status(404).json({ message: "Patient introuvable" });
         }
 
-        await client.query("BEGIN");
-        const suivi = await client.query(
-            `INSERT INTO suivi_medical (medecin_id, patient_id) VALUES ($1, $2)
-             ON CONFLICT (medecin_id, patient_id) DO NOTHING
-             RETURNING id`,
+        const suivi = await db.query(
+            "SELECT 1 FROM suivi_medical WHERE medecin_id = $1 AND patient_id = $2",
             [req.user.id, patientId]
         );
-        if (suivi.rows.length === 0) {
-            await client.query("ROLLBACK");
+        if (suivi.rows.length > 0) {
             return res.status(409).json({ message: "Ce patient est déjà dans votre liste" });
         }
-        await client.query(
-            `INSERT INTO acces_dossier (patient_id, professionnel_id) VALUES ($1, $2)
-             ON CONFLICT (patient_id, professionnel_id) DO NOTHING`,
-            [patientId, req.user.id]
-        );
-        await client.query("COMMIT");
 
-        const result = await db.query(`${SELECT_PATIENT_SUIVI} AND u.id = $2`, [req.user.id, patientId]);
-        res.status(201).json({ message: "Patient ajouté", patient: result.rows[0] });
+        // Nouvelle demande, ou demande refusée renvoyée ; rien si une demande est déjà en attente
+        const demande = await db.query(
+            `INSERT INTO demandes_suivi (medecin_id, patient_id) VALUES ($1, $2)
+             ON CONFLICT (medecin_id, patient_id) DO UPDATE
+             SET statut = 'en_attente', created_at = CURRENT_TIMESTAMP, date_reponse = NULL
+             WHERE demandes_suivi.statut <> 'en_attente'
+             RETURNING id, statut`,
+            [req.user.id, patientId]
+        );
+        if (demande.rows.length === 0) {
+            return res.status(409).json({ message: "Demande déjà envoyée, en attente de la réponse du patient" });
+        }
+
+        res.status(201).json({
+            message: "Demande envoyée au patient",
+            demande: { id: demande.rows[0].id, patient_id: patientId, statut: demande.rows[0].statut }
+        });
     } catch (error) {
-        await client.query("ROLLBACK").catch(() => {});
-        console.error("Erreur ajout patient :", error.message);
+        console.error("Erreur demande de suivi :", error.message);
         res.status(500).json({ message: "Erreur serveur" });
-    } finally {
-        client.release();
     }
 };
 
@@ -318,7 +330,11 @@ exports.majProfil = async (req, res) => {
 
     const nom = texte(b.nom_complet, 150);
     if (!nom) return res.status(400).json({ message: "Le nom est obligatoire" });
-    const telephone = texte(b.telephone, 20);
+    // Téléphone : seulement les chiffres, comme à l'inscription
+    const telephone = normaliserTelephone(b.telephone);
+    if (telephone !== null && !telephoneValide(telephone)) {
+        return res.status(400).json({ message: "Numéro de téléphone invalide (8 à 15 chiffres)" });
+    }
 
     const client = await db.connect();
     try {

@@ -39,6 +39,7 @@ class EspaceMedecinService {
       return ResultatRecherche(
         patient: Patient.fromJson(data['patient'] as Map<String, dynamic>),
         dejaSuivi: data['deja_suivi'] == true,
+        demandeEnAttente: data['demande_en_attente'] == true,
       );
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;
@@ -46,7 +47,8 @@ class EspaceMedecinService {
     }
   }
 
-  /// POST /api/medecin/patients (crée aussi l'accès au dossier)
+  /// POST /api/medecin/patients : envoie une DEMANDE de suivi.
+  /// Le patient doit l'accepter avant que le médecin voie son dossier.
   Future<void> ajouterPatient(int patientId) async {
     await api.post('/medecin/patients', {'patient_id': patientId});
   }

@@ -7,6 +7,7 @@ const traitementController = require("../controllers/traitementController");
 const agendaController = require("../controllers/agendaController");
 const dossierController = require("../controllers/dossierController");
 const messagesController = require("../controllers/messagesController");
+const demandesController = require("../controllers/demandesController");
 
 // Toutes ces routes : connecté + rôle patient
 router.use(verifierToken, autoriserRoles("patient"));
@@ -38,5 +39,9 @@ router.get("/me/partages", dossierController.mesPartages);
 router.get("/me/medecins", messagesController.mesMedecins);
 router.get("/me/messages/:medecinId", messagesController.messagesAvecMedecin);
 router.post("/me/messages/:medecinId", messagesController.ecrireAuMedecin);
+
+// Demandes de suivi des médecins : le patient accepte ou refuse (consentement)
+router.get("/me/demandes", demandesController.mesDemandes);
+router.put("/me/demandes/:id", demandesController.repondreDemande);
 
 module.exports = router;
