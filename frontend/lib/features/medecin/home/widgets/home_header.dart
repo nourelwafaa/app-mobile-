@@ -7,12 +7,14 @@ import 'package:lupus_plus/services/medecin_service.dart';
 // Top of the home page: logo, app name, message and bell icons, greeting.
 class HomeHeader extends StatelessWidget {
   final String nomMedecin; // e.g. "Martin"
+  final bool messagesNonLus; // point rouge sur l'icône Messages (GET /api/medecin/accueil)
   final VoidCallback? onMessages; // tap on the message icon
   final VoidCallback? onNotifications; // tap on the bell (no page yet)
 
   const HomeHeader({
     super.key,
     required this.nomMedecin,
+    this.messagesNonLus = false,
     this.onMessages,
     this.onNotifications,
   });
@@ -46,13 +48,10 @@ class HomeHeader extends StatelessWidget {
             ),
             const Spacer(),
             // The red dot appears only when there are unread messages.
-            ValueListenableBuilder<int>(
-              valueListenable: MedecinService.messagesChanged,
-              builder: (context, value, child) => _IconeAvecPastille(
-                icon: Icons.chat_bubble_outline,
-                afficherPastille: MedecinService().nombreNonLus() > 0,
-                onTap: onMessages,
-              ),
+            _IconeAvecPastille(
+              icon: Icons.chat_bubble_outline,
+              afficherPastille: messagesNonLus,
+              onTap: onMessages,
             ),
            // The red dot appears only when there are unread notifications.
             ValueListenableBuilder<int>(

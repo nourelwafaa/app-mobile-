@@ -35,14 +35,14 @@ app-mobile-/
 │   ├── server.js
 │   ├── config/db.js        # Pool pg ; les DATE sont renvoyées en texte "AAAA-MM-JJ" (types.setTypeParser(1082))
 │   ├── middleware/authMiddleware.js   # verifierToken, autoriserRoles("patient" | "medecin")
-│   ├── controllers/        # authController, patientController, suiviController, traitementController, agendaController, dossierController, medecinController
+│   ├── controllers/        # authController, patientController, suiviController, traitementController, agendaController, dossierController, medecinController, messagesController
 │   ├── routes/             # authRoutes (/api/auth), patientRoutes (/api/patients), medecinRoutes (/api/medecin)
 │   └── database/           # 01 à 05 *.sql : le schéma complet (23 tables) ; 06_index_prises.sql (unicité des prises) ; 07_documents.sql (fichier facultatif + partage automatique)
 └── frontend/lib/
     ├── core/api_client.dart        # ApiClient (get/post/put, token Bearer, erreurs → ApiException)
     ├── providers/auth_provider.dart # kDemoMode = false : l'auth utilise le vrai backend
     ├── models/
-    ├── services/           # MON dossier : appels API (suivi_service.dart, traitement_service.dart, agenda_service.dart, dossier_service.dart, espace_medecin_service.dart…) ; medecin_service.dart = fausses données restantes (messages, notifications)
+    ├── services/           # MON dossier : appels API (suivi_service.dart, traitement_service.dart, agenda_service.dart, dossier_service.dart, espace_medecin_service.dart, messages_service.dart…) ; medecin_service.dart = fausses données restantes (notifications)
     ├── screens/            # écrans patient + auth (binômes)
     └── features/medecin/   # écrans médecin (binômes)
 ```
@@ -78,7 +78,7 @@ app-mobile-/
 - [x] Séance 4 : le **médecin crée** les rendez-vous et les analyses, le **patient consulte** seulement. `GET /api/patients/me/rendez-vous`, `GET /api/patients/me/analyses`, `GET /api/medecin/patients` (version simple), `GET/POST /api/medecin/rendez-vous`, `PUT /api/medecin/rendez-vous/:id/statut`, `POST /api/medecin/analyses` (pas encore d'écran : Postman). Branchés : agenda patient, onglets Rendez-vous / Analyses de `rappels_screen.dart`, ligne RDV de l'accueil, `AgendaPage` + `NewRdvPage` médecin (vrais patients aussi dans les actions rapides et la fiche). Les boutons « + Ajouter un rendez-vous » côté patient seront supprimés par une binôme.
 - [x] Séance 5 : dossier médical. Le **médecin ajoute** les documents (titre, type, date ; **pas encore de vrai fichier**, `fichier_url` facultatif), le **patient consulte**. Un médecin qui suit un patient a accès à son dossier (`acces_dossier`). `GET /api/patients/me/documents`, `GET /api/patients/me/partages`, `GET/POST /api/medecin/patients/:patientId/documents`. Branchés : `dossier_screen.dart` (documents + « Partagé avec »), `AddDocumentPage`, onglet Documents de la fiche patient. Le bouton « Ajouter un document » côté patient sera supprimé par une binôme.
 - [x] Séance 6 : espace médecin réel. `medecinController.js` : `GET /api/medecin/patients` (complet : alerte en cours, douleur 7 jours, RDV cette semaine), `GET /api/medecin/patients/:id`, `GET /api/medecin/patients/recherche?identifiant=`, `POST /api/medecin/patients` (crée aussi `acces_dossier`), `GET /api/medecin/alertes`, `PUT /api/medecin/alertes/:id/traitee`, `GET /api/medecin/accueil` (« amélioration moyenne » = baisse de la douleur moyenne, 7 j vs 7 j précédents), `GET/PUT /api/medecin/profil`. Branchés : patients, ajout, choisir un patient, fiche (+ traitements/prescrire), alertes, accueil, profil (`espace_medecin_service.dart`). **Restent dans `medecin_service.dart`** : messages (séance 7), notifications (séance 8), photo de profil (locale), et les `ValueNotifier` (`patientsChanged`, `rdvChanged`, `alertesChanged`…) qui servent à recharger les écrans.
-- [ ] **Séance 7 (prochaine)** : messagerie médecin ↔ patient (`features/medecin/messages/`, `screens/patient/chat_screen.dart`, `widgets/chat_view.dart`)
-- [ ] Séance 8 : recherche, communauté, conseils, LupIA, notifications
+- [x] Séance 7 : messagerie médecin ↔ patient (`messagesController.js`), uniquement si le médecin suit le patient. Patient : `GET /api/patients/me/medecins`, `GET/POST /api/patients/me/messages/:medecinId` ; médecin : `GET /api/medecin/conversations`, `GET/POST /api/medecin/messages/:patientId` ; `messages_non_lus` ajouté à `GET /api/medecin/accueil`. JSON `texte` ↔ colonne `contenu`. Pas de temps réel : la discussion ouverte se recharge toutes les 5 s. **Ajout validé par Nour** : icône 💬 + page « Messages » côté patient (`messages_screen.dart`, `chat_screen.dart` refait), même design que les écrans médecin. « Trouver un pro » (fausse liste) : écriture désactivée.
+- [ ] **Séance 8 (prochaine)** : recherche, communauté, conseils, LupIA, notifications (dont la cloche/page Notifications du médecin, encore dans `medecin_service.dart`)
 - [ ] Séance 9 : mot de passe oublié
 - [ ] Séance 10 : mise en ligne + tests finaux

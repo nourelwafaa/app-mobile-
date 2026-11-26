@@ -9,6 +9,7 @@ class HomeData {
   final int ameliorationMoyenne; // in percent: 12 means +12%
   final List<Patient> patientsRecents; // recent patients list
   final DateTime? prochainRdv; // jour du prochain RDV planifié (null s'il n'y en a pas)
+  final int messagesNonLus; // point rouge sur l'icône Messages (séance 7)
 
   const HomeData({
     required this.nomMedecin,
@@ -18,6 +19,7 @@ class HomeData {
     required this.ameliorationMoyenne,
     required this.patientsRecents,
     this.prochainRdv,
+    this.messagesNonLus = 0,
   });
 
   /// Réponse de GET /api/medecin/accueil (séance 6)
@@ -33,5 +35,6 @@ class HomeData {
         prochainRdv: j['prochain_rdv'] == null
             ? null
             : DateTime.parse(j['prochain_rdv'] as String),
+        messagesNonLus: (j['messages_non_lus'] as num?)?.toInt() ?? 0,
       );
 }

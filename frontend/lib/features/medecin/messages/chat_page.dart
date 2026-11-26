@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
@@ -5,9 +6,12 @@ import 'package:lupus_plus/core/utils/date_format.dart';
 import 'package:lupus_plus/features/medecin/patients/patient_fiche_page.dart';
 import 'package:lupus_plus/models/message.dart';
 import 'package:lupus_plus/models/patient.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/services/messages_service.dart';
+import 'package:provider/provider.dart';
 
-// The chat with one patient.
+// The chat with one patient (backend, séance 7). Reloads every 5 seconds.
 class ChatPage extends StatefulWidget {
   final Patient patient;
   final bool depuisFiche; // true = opened from the patient file
@@ -19,8 +23,11 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final MedecinService _service = MedecinService();
+  static const Duration _intervalle = Duration(seconds: 5);
+
+  late final MessagesService _service;
   final TextEditingController _champ = TextEditingController();
+  Timer? _timer;
 
   List<Message> _messages = [];
   bool _chargement = true;
@@ -31,12 +38,20 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    _service = MessagesService(context.read<AuthProvider>().api);
     _champ.addListener(_surChangementTexte);
     _charger();
+    _timer = Timer.periodic(_intervalle, (_) => _charger());
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
+    // Messages lus / envoyés : la liste « Messages » et le point rouge se mettent à jour
+    // (juste après la fermeture, pas pendant).
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => MedecinService.messagesChanged.value++,
+    );
     _champ.removeListener(_surChangementTexte);
     _champ.dispose();
     super.dispose();
@@ -47,15 +62,20 @@ class _ChatPageState extends State<ChatPage> {
     if (mounted) setState(() {});
   }
 
+  // GET /api/medecin/messages/:patientId
+  // (le serveur marque les messages du patient comme lus)
   Future<void> _charger() async {
-    final liste = await _service.getMessages(_p.id);
-    if (!mounted) return;
-    setState(() {
-      _messages = liste;
-      _chargement = false;
-    });
-    // Opening the chat marks the patient's messages as read.
-    _service.marquerLu(_p.id);
+    try {
+      final liste = await _service.getMessagesPatient(_p.id);
+      if (!mounted) return;
+      setState(() {
+        _messages = liste;
+        _chargement = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _chargement = false);
+    }
   }
 
   Future<void> _envoyer() async {
@@ -63,15 +83,19 @@ class _ChatPageState extends State<ChatPage> {
     if (texte.isEmpty || _envoi) return;
 
     setState(() => _envoi = true);
-    _champ.clear();
-
-    await _service.envoyerMessage(_p.id, texte);
-    final liste = await _service.getMessages(_p.id);
-    if (!mounted) return;
-    setState(() {
-      _messages = liste;
-      _envoi = false;
-    });
+    try {
+      // POST /api/medecin/messages/:patientId
+      await _service.ecrireAuPatient(_p.id, texte);
+      _champ.clear();
+      await _charger();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+        );
+      }
+    }
+    if (mounted) setState(() => _envoi = false);
   }
 
   // "Fiche" link: back to the file if we came from it, otherwise open it.

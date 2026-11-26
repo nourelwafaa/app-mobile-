@@ -6,6 +6,7 @@ const suiviController = require("../controllers/suiviController");
 const traitementController = require("../controllers/traitementController");
 const agendaController = require("../controllers/agendaController");
 const dossierController = require("../controllers/dossierController");
+const messagesController = require("../controllers/messagesController");
 
 // Toutes ces routes : connecté + rôle patient
 router.use(verifierToken, autoriserRoles("patient"));
@@ -32,5 +33,10 @@ router.get("/me/analyses", agendaController.mesAnalyses);
 // Dossier médical (séance 5 ; documents ajoutés par le médecin)
 router.get("/me/documents", dossierController.mesDocuments);
 router.get("/me/partages", dossierController.mesPartages);
+
+// Messagerie avec les médecins qui me suivent (séance 7)
+router.get("/me/medecins", messagesController.mesMedecins);
+router.get("/me/messages/:medecinId", messagesController.messagesAvecMedecin);
+router.post("/me/messages/:medecinId", messagesController.ecrireAuMedecin);
 
 module.exports = router;

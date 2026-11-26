@@ -126,6 +126,9 @@ class AppStrings {
   static const String messages = 'Messages';
   static const String rechercherConversation = 'Rechercher une conversation';
   static const String uniquementPatientsSuivis = 'Uniquement avec vos patients suivis';
+  static const String uniquementMesMedecins = 'Uniquement avec les médecins qui vous suivent';
+  static const String ecrireSeulementMedecinSuivi =
+      "Vous ne pouvez écrire qu'à un médecin qui vous suit (icône Messages de l'accueil)";
   static const String aucuneConversation = 'Aucune conversation';
   static const String vous = 'Vous';
   static const String fiche = 'Fiche';

@@ -46,6 +46,9 @@ const SELECT_PATIENT_SUIVI = `
     ) a ON TRUE
     WHERE sm.medecin_id = $1`;
 
+// Réutilisée par la messagerie (conversations du médecin)
+exports.SELECT_PATIENT_SUIVI = SELECT_PATIENT_SUIVI;
+
 // GET /api/medecin/patients : écran « Patients » (+ choix d'un patient, nouveau RDV)
 exports.mesPatients = async (req, res) => {
     try {
@@ -244,7 +247,10 @@ exports.accueil = async (req, res) => {
                   WHERE s.date_suivi > CURRENT_DATE - 7) AS douleur_actuelle,
                 (SELECT AVG(s.douleur)::float
                    FROM suivi_quotidien s JOIN suivi_medical sm ON sm.patient_id = s.patient_id AND sm.medecin_id = $1
-                  WHERE s.date_suivi <= CURRENT_DATE - 7 AND s.date_suivi > CURRENT_DATE - 14) AS douleur_precedente`,
+                  WHERE s.date_suivi <= CURRENT_DATE - 7 AND s.date_suivi > CURRENT_DATE - 14) AS douleur_precedente,
+                (SELECT COUNT(*)::int
+                   FROM messages m JOIN suivi_medical sm ON sm.patient_id = m.expediteur_id AND sm.medecin_id = $1
+                  WHERE m.destinataire_id = $1 AND m.lu = FALSE) AS messages_non_lus`,
             [medecinId]
         );
         const c = compteurs.rows[0];
@@ -268,6 +274,7 @@ exports.accueil = async (req, res) => {
             rendez_vous_a_venir: c.rendez_vous_a_venir,
             amelioration_moyenne: amelioration,
             prochain_rdv: c.prochain_rdv,
+            messages_non_lus: c.messages_non_lus,
             patients_recents: recents.rows
         });
     } catch (error) {

@@ -46,12 +46,14 @@ class _HomePageState extends State<HomePage> {
     MedecinService.patientsChanged.addListener(_recharger);
     MedecinService.rdvChanged.addListener(_recharger);
     MedecinService.alertesChanged.addListener(_recharger);
+    MedecinService.messagesChanged.addListener(_recharger); // point rouge Messages
   }
   @override
   void dispose() {
     MedecinService.patientsChanged.removeListener(_recharger);
     MedecinService.rdvChanged.removeListener(_recharger);
     MedecinService.alertesChanged.removeListener(_recharger);
+    MedecinService.messagesChanged.removeListener(_recharger);
     super.dispose();
   }
 
@@ -159,6 +161,7 @@ class _HomePageState extends State<HomePage> {
         // Logo, names, avatar and greeting.
         HomeHeader(
           nomMedecin: data.nomMedecin,
+          messagesNonLus: data.messagesNonLus > 0,
           onMessages: _ouvrirMessages,
           onNotifications: _ouvrirNotifications,
         ),
