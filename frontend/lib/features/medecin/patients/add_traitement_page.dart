@@ -5,11 +5,10 @@ import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/theme/form_style.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:lupus_plus/services/traitement_service.dart';
 
 // Form to add a medication to a patient. Closes with true when saved.
-// Médecin : AddTraitementPage(patientId: ...) (fausses données jusqu'à la séance 6).
+// Médecin : AddTraitementPage(patientId: ...) → POST /api/medecin/patients/:id/traitements.
 // Patient : AddTraitementPage.patient() → POST /api/patients/me/traitements.
 class AddTraitementPage extends StatefulWidget {
   final int? patientId; // null = le patient connecté ajoute son médicament
@@ -23,7 +22,6 @@ class AddTraitementPage extends StatefulWidget {
 }
 
 class _AddTraitementPageState extends State<AddTraitementPage> {
-  final MedecinService _service = MedecinService();
   final _formKey = GlobalKey<FormState>();
 
   final _nomCtrl = TextEditingController();
@@ -101,9 +99,10 @@ class _AddTraitementPageState extends State<AddTraitementPage> {
 
     try {
       final patientId = widget.patientId;
+      final service = TraitementService(context.read<AuthProvider>().api);
       if (patientId == null) {
-        // Patient connecté : vrai backend
-        await TraitementService(context.read<AuthProvider>().api).ajouter(
+        // Patient connecté : POST /api/patients/me/traitements
+        await service.ajouter(
           nom: _nomCtrl.text.trim(),
           dosage: _dosageCtrl.text.trim(),
           foisParJour: _fois,
@@ -111,7 +110,8 @@ class _AddTraitementPageState extends State<AddTraitementPage> {
           fin: _fin,
         );
       } else {
-        await _service.addTraitement(
+        // Médecin : POST /api/medecin/patients/:patientId/traitements
+        await service.prescrire(
           patientId: patientId,
           nom: _nomCtrl.text.trim(),
           dosage: _dosageCtrl.text.trim(),

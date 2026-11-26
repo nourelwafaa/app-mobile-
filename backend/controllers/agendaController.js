@@ -82,34 +82,7 @@ async function suitLePatient(medecinId, patientId) {
     return r.rows.length > 0;
 }
 
-// GET /api/medecin/patients : patients suivis par le médecin
-// Version simple pour le formulaire « Nouveau rendez-vous » (complétée en séance 6)
-exports.mesPatients = async (req, res) => {
-    try {
-        const result = await db.query(
-            `SELECT u.id,
-                    u.nom_complet AS nom,
-                    u.date_naissance,
-                    p.sexe,
-                    p.groupe_sanguin,
-                    to_char(
-                        COALESCE((SELECT MAX(s.created_at) FROM suivi_quotidien s WHERE s.patient_id = u.id),
-                                 sm.date_debut::timestamp),
-                        'YYYY-MM-DD"T"HH24:MI:SS'
-                    ) AS derniere_activite
-             FROM suivi_medical sm
-             JOIN users u ON u.id = sm.patient_id
-             JOIN patients p ON p.user_id = u.id
-             WHERE sm.medecin_id = $1
-             ORDER BY u.nom_complet`,
-            [req.user.id]
-        );
-        res.json({ message: "Liste des patients", patients: result.rows });
-    } catch (error) {
-        console.error("Erreur patients médecin :", error.message);
-        res.status(500).json({ message: "Erreur serveur" });
-    }
-};
+// (GET /api/medecin/patients : déplacé dans medecinController, séance 6)
 
 // GET /api/medecin/rendez-vous : agenda du médecin (tous ses rendez-vous, tous statuts)
 exports.agendaMedecin = async (req, res) => {

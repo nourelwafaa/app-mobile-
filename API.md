@@ -284,7 +284,7 @@ Corps : identique au §8. Le traitement est enregistré avec `prescrit_par` = id
 Réponse **201** : `"message": "Médicament ajouté"` + `traitement`
 Erreurs : **400** (`patientId` ou champ invalide), **404** (« Patient introuvable parmi vos patients »)
 
-⚠️ À brancher dans l'app en séance 6, quand la liste des patients du médecin viendra du backend (les ids actuels de `medecin_service.dart` sont fictifs).
+✅ Branché dans l'app en séance 6 (fiche patient, onglet Traitements + « Prescrire »).
 
 ---
 
@@ -344,7 +344,7 @@ Date et heure sont renvoyées séparément : `"date": "AAAA-MM-JJ"`, `"heure": "
 ## 14. Patients du médecin
 
 `GET /api/medecin/patients` — token obligatoire, rôle médecin
-Écran : liste « Patient » du formulaire « Nouveau rendez-vous »
+Écrans : « Patients », « Choisir un patient », liste du formulaire « Nouveau rendez-vous »
 
 ```json
 {
@@ -356,13 +356,54 @@ Date et heure sont renvoyées séparément : `"date": "AAAA-MM-JJ"`, `"heure": "
       "date_naissance": "2000-05-15",
       "sexe": "femme",
       "groupe_sanguin": "AB+",
-      "derniere_activite": "2026-11-19T15:03:25"
+      "derniere_activite": "2026-11-26T09:12:00",
+      "alerte_niveau": "eleve",
+      "alerte_message": "Douleur signalée à 9/10 dans le suivi du jour.",
+      "douleur_7_jours": [null, 5, 6, null, 7, 8, 6],
+      "rdv_cette_semaine": true
     }
   ]
 }
 ```
 
-- Seulement les patients suivis (`suivi_medical`). Version simple : alertes et douleur des 7 jours en séance 6.
+- Seulement les patients suivis (`suivi_medical`), du plus récemment actif au moins actif
+- `alerte_niveau` : `faible`, `moyen`, `eleve` ou `null` (l'alerte non traitée la plus grave)
+- `douleur_7_jours` : 7 valeurs, du plus ancien jour à aujourd'hui ; `null` = pas de suivi ce jour-là
+- `rdv_cette_semaine` : un rendez-vous non annulé avec ce médecin, du lundi au dimanche
+
+`GET /api/medecin/patients/:patientId` → `{ "message": "Patient", "patient": {...} }` (même format) ; **404** si ce n'est pas un patient du médecin
+
+## 14 bis. Rechercher un patient à ajouter
+
+`GET /api/medecin/patients/recherche?identifiant=sarah@test.com` — token obligatoire, rôle médecin
+Écran : « Ajouter un patient »
+
+- `identifiant` = email exact **ou** numéro de téléphone (les espaces et tirets sont ignorés, 8 chiffres minimum)
+
+Réponse **200** :
+
+```json
+{
+  "message": "Patient trouvé",
+  "patient": { "id": 4, "nom": "Rania Ouali", "date_naissance": null, "sexe": null, "groupe_sanguin": null },
+  "deja_suivi": false
+}
+```
+
+Erreurs : **400** (identifiant vide ou téléphone trop court), **404** (« Aucun patient trouvé avec cet identifiant »)
+
+## 14 ter. Ajouter un patient
+
+`POST /api/medecin/patients` — token obligatoire, rôle médecin
+
+```json
+{ "patient_id": 4 }
+```
+
+- Le médecin suit le patient (`suivi_medical`) **et** a accès à son dossier (`acces_dossier`)
+
+Réponse **201** : `"message": "Patient ajouté"` + `patient` (même format qu'au §14)
+Erreurs : **400** (`patient_id` manquant), **404** (patient introuvable), **409** (« Ce patient est déjà dans votre liste »)
 
 ## 15. Agenda du médecin
 
@@ -521,3 +562,103 @@ Erreur : **404** (« Dossier introuvable ou non partagé avec vous »)
 
 Réponse **201** : `"message": "Document ajouté"` + `document` (même format qu'au §19)
 Erreurs : **400** (titre manquant, type ou date invalide), **404** (« Patient introuvable parmi vos patients »)
+
+---
+
+**Espace médecin (séance 6)**
+
+## 23. Alertes du médecin
+
+`GET /api/medecin/alertes` — token obligatoire, rôle médecin
+Écran : « Alertes » (onglets « À traiter » / « Traitées »)
+
+```json
+{
+  "message": "Alertes",
+  "alertes": [
+    {
+      "id": 1,
+      "patient_id": 1,
+      "patient_nom": "Sarah Benali",
+      "type": "douleur",
+      "niveau": "eleve",
+      "message": "Douleur signalée à 9/10 dans le suivi du jour.",
+      "date": "2026-11-19T14:18:31",
+      "traitee": false
+    }
+  ]
+}
+```
+
+- Alertes des patients suivis, plus récentes d'abord. Créées automatiquement (douleur ≥ 8 dans le suivi du jour).
+- `niveau` : `faible`, `moyen` ou `eleve`
+
+## 24. Marquer une alerte traitée
+
+`PUT /api/medecin/alertes/:id/traitee` — token obligatoire, rôle médecin (corps vide `{}`)
+
+Réponse **200** : `"message": "Alerte traitée"` + `id`, `traitee`
+Erreur : **404** (« Alerte introuvable », ou alerte d'un patient non suivi)
+
+## 25. Accueil du médecin
+
+`GET /api/medecin/accueil` — token obligatoire, rôle médecin
+Écran : accueil du médecin (tableau de bord)
+
+```json
+{
+  "message": "Accueil",
+  "nom_medecin": "Karim Martin",
+  "patients_suivis": 2,
+  "alertes_aujourdhui": 0,
+  "rendez_vous_a_venir": 2,
+  "amelioration_moyenne": 12,
+  "prochain_rdv": "2026-11-27",
+  "patients_recents": [ { "id": 1, "nom": "Sarah Benali", "...": "même format qu'au §14" } ]
+}
+```
+
+- `alertes_aujourdhui` : alertes encore à traiter
+- `amelioration_moyenne` : baisse (en %) de la douleur moyenne des patients suivis, 7 derniers jours comparés aux 7 jours d'avant. Négatif si la douleur augmente, `0` s'il n'y a pas assez de données.
+- `prochain_rdv` : jour du prochain RDV planifié (`null` s'il n'y en a pas) — bouton « RDV à venir » → ouvre l'agenda ce jour-là
+- `patients_recents` : les 3 patients les plus récemment actifs
+
+## 26. Profil du médecin
+
+`GET /api/medecin/profil` — token obligatoire, rôle médecin
+
+```json
+{
+  "message": "Profil",
+  "profil": {
+    "nom_complet": "Karim Martin",
+    "email": "medecin@test.com",
+    "telephone": "0567892312",
+    "specialite": "Rhumatologue",
+    "etablissement": null,
+    "adresse": null,
+    "ville": null
+  }
+}
+```
+
+## 27. Modifier le profil du médecin
+
+`PUT /api/medecin/profil` — token obligatoire, rôle médecin
+
+```json
+{
+  "nom_complet": "Karim Martin",
+  "specialite": "Rhumatologue",
+  "etablissement": "Clinique El Azhar",
+  "adresse": "12 rue des Oliviers",
+  "ville": "Alger",
+  "telephone": "0567892312"
+}
+```
+
+- `nom_complet` : obligatoire ; les autres champs sont optionnels (vide = effacé)
+- L'email ne change pas. La photo de profil reste sur le téléphone (pas encore envoyée au serveur).
+
+Réponse **200** : `"message": "Profil mis à jour"` + `profil`
+Erreurs : **400** (nom manquant), **409** (« Ce numéro de téléphone est déjà utilisé »)

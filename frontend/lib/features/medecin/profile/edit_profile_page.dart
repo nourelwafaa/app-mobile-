@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/models/medecin_profile.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // Turns an empty text into null, so the profile shows "Non renseigné".
 String? _valeurOuNull(String texte) {
@@ -21,7 +23,8 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service =
+      EspaceMedecinService(context.read<AuthProvider>().api); // backend (séance 6)
 
   // Key used to check ALL the fields at once (validation).
   final _formKey = GlobalKey<FormState>();
@@ -94,7 +97,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       telephone: _valeurOuNull(_telephoneCtrl.text),
     );
 
-    await _service.updateProfile(nouveauProfil);
+    try {
+      // PUT /api/medecin/profil
+      await _service.majProfil(nouveauProfil);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _enregistrement = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
 
     // The page may have been closed while waiting.
     if (!mounted) return;

@@ -13,7 +13,7 @@ import 'package:lupus_plus/models/traitement.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/services/agenda_service.dart';
 import 'package:lupus_plus/services/dossier_service.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/services/traitement_service.dart';
 import 'package:provider/provider.dart';
 
 // The 3 tabs of the patient file.
@@ -33,7 +33,6 @@ class PatientFichePage extends StatefulWidget {
 }
 
 class _PatientFichePageState extends State<PatientFichePage> {
-  final MedecinService _service = MedecinService();
   final DateFormat _dateFr = DateFormat('d MMM yyyy', 'fr_FR');
 
   _Onglet _onglet = _Onglet.suivi;
@@ -55,14 +54,19 @@ class _PatientFichePageState extends State<PatientFichePage> {
   }
 
   Future<void> _charger() async {
-    final dossier = DossierService(context.read<AuthProvider>().api);
-    final traitements = await _service.getTraitements(_p.id);
+    final api = context.read<AuthProvider>().api;
 
-    // Documents : backend (séance 5). La fiche utilise encore les faux patients
-    // (séance 6) : si ce patient n'existe pas dans la base, la liste reste vide.
+    // Traitements (séance 3) et documents (séance 5) : backend.
+    // En cas d'erreur, l'onglet concerné reste simplement vide.
+    List<Traitement> traitements;
     List<DocumentMedical> documents;
     try {
-      documents = await dossier.getDocumentsPatient(_p.id);
+      traitements = await TraitementService(api).getTraitementsPatient(_p.id);
+    } catch (_) {
+      traitements = [];
+    }
+    try {
+      documents = await DossierService(api).getDocumentsPatient(_p.id);
     } catch (_) {
       documents = [];
     }
@@ -112,9 +116,7 @@ class _PatientFichePageState extends State<PatientFichePage> {
 
   // Opens "Nouveau rendez-vous" with this patient preselected.
   Future<void> _planifierRdv() async {
-    // Vrais patients suivis (GET /api/medecin/patients). La fiche elle-même
-    // utilise encore les fausses données : si ce patient n'existe pas dans la
-    // base, il n'est simplement pas présélectionné (branché en séance 6).
+    // Vrais patients suivis (GET /api/medecin/patients), ce patient présélectionné.
     final List<Patient> patients;
     try {
       patients =

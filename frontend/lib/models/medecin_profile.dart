@@ -22,6 +22,27 @@ class MedecinProfile {
 
   // "12 rue X, Alger" built from address + city.
   // Returns null if both are empty, so the screen can show "Non renseigné".
+  /// Réponse de GET /api/medecin/profil (séance 6)
+  factory MedecinProfile.fromJson(Map<String, dynamic> j) => MedecinProfile(
+        nomComplet: (j['nom_complet'] as String?) ?? '',
+        specialite: j['specialite'] as String?,
+        etablissement: j['etablissement'] as String?,
+        adresse: j['adresse'] as String?,
+        ville: j['ville'] as String?,
+        email: (j['email'] as String?) ?? '',
+        telephone: j['telephone'] as String?,
+      );
+
+  /// Corps de PUT /api/medecin/profil (l'email ne change pas)
+  Map<String, dynamic> toJson() => {
+        'nom_complet': nomComplet,
+        'specialite': specialite,
+        'etablissement': etablissement,
+        'adresse': adresse,
+        'ville': ville,
+        'telephone': telephone,
+      };
+
   String? get adresseComplete {
     final parts = [adresse, ville]
         .where((p) => p != null && p.trim().isNotEmpty)

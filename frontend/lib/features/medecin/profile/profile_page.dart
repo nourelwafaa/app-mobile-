@@ -6,6 +6,7 @@ import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/utils/name_utils.dart';
 import 'package:lupus_plus/features/medecin/profile/widgets/profile_info_row.dart';
 import 'package:lupus_plus/models/medecin_profile.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:lupus_plus/features/medecin/profile/edit_profile_page.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,9 @@ class _ProfilePageState extends State<ProfilePage> {
     // Start loading ONCE, when the page opens.
         // The logged-in account (this page only exists when someone is logged in).
     final user = context.read<AuthProvider>().user!;
-    _futureProfile = _service.getProfile(user);
+    // GET /api/medecin/profil (la photo reste sur le téléphone)
+    _futureProfile =
+        EspaceMedecinService(context.read<AuthProvider>().api).getProfil();
     _photo = _service.getPhoto(user);
   }
 
@@ -203,12 +206,10 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (modifie == true && mounted) {
-      // Reload the profile so the new values appear.
-      final user = context.read<AuthProvider>().user!;
+      // Reload the profile so the new values appear (GET /api/medecin/profil).
       setState(() {
-        // The logged-in account (this page only exists when someone is logged in).
-        
-        _futureProfile = _service.getProfile(user);
+        _futureProfile =
+            EspaceMedecinService(context.read<AuthProvider>().api).getProfil();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(AppStrings.profilMisAJour)),
