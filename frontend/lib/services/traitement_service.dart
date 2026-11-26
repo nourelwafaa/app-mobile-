@@ -46,6 +46,34 @@ class TraitementService {
         .toList();
   }
 
+  // ---------- Médecin (API de la séance 3, branchées en séance 6) ----------
+
+  /// GET /api/medecin/patients/:patientId/traitements
+  Future<List<Traitement>> getTraitementsPatient(int patientId) async {
+    final data = await api.get('/medecin/patients/$patientId/traitements');
+    return ((data['traitements'] as List?) ?? [])
+        .map((t) => Traitement.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /api/medecin/patients/:patientId/traitements (le médecin prescrit)
+  Future<void> prescrire({
+    required int patientId,
+    required String nom,
+    required String dosage,
+    required int foisParJour,
+    required DateTime debut,
+    DateTime? fin,
+  }) async {
+    await api.post('/medecin/patients/$patientId/traitements', {
+      'nom': nom,
+      'dosage': dosage,
+      'fois_par_jour': foisParJour,
+      'debut': _date(debut),
+      'fin': fin == null ? null : _date(fin),
+    });
+  }
+
   /// POST /api/patients/me/prises : bouton « Marquer pris »
   Future<void> marquerPrise(int rappelId) async {
     await api.post('/patients/me/prises', {'rappel_id': rappelId});

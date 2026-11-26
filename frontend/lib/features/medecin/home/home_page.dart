@@ -5,6 +5,7 @@ import 'package:lupus_plus/features/medecin/home/widgets/home_header.dart';
 import 'package:lupus_plus/features/medecin/home/widgets/patient_tile.dart';
 import 'package:lupus_plus/features/medecin/home/widgets/stat_card.dart';
 import 'package:lupus_plus/models/home_data.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
@@ -30,7 +31,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service; // backend (séance 6)
 
   // The data being loaded (will be available "in the future").
   late Future<HomeData> _futureData;
@@ -38,9 +39,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // The logged-in account (this page only exists when someone is logged in).
-    final user = context.read<AuthProvider>().user!;
-    _futureData = _service.getHomeData(user);
+    _service = EspaceMedecinService(context.read<AuthProvider>().api);
+    // GET /api/medecin/accueil
+    _futureData = _service.getAccueil();
     // Reload the counters when a patient or an appointment is added.
     MedecinService.patientsChanged.addListener(_recharger);
     MedecinService.rdvChanged.addListener(_recharger);
@@ -57,9 +58,8 @@ class _HomePageState extends State<HomePage> {
   // Loads the data again (the old data stays visible meanwhile).
   void _recharger() {
     if (!mounted) return;
-    final user = context.read<AuthProvider>().user!;
     setState(() {
-      _futureData = _service.getHomeData(user);
+      _futureData = _service.getAccueil();
     });
   }
   // Opens the conversations list inside the Accueil tab (the bar stays).
@@ -89,7 +89,13 @@ class _HomePageState extends State<HomePage> {
 
   // Opens the Agenda on the day of the next planned appointment (or today).
   Future<void> _ouvrirAgenda() async {
-    final jour = await _service.prochainJourRdv();
+    // Jour du prochain RDV, déjà chargé avec l'accueil.
+    DateTime? jour;
+    try {
+      jour = (await _futureData).prochainRdv;
+    } catch (_) {
+      jour = null;
+    }
     if (!mounted) return;
     widget.onOuvrirAgenda?.call(jour ?? DateTime.now());
   }
@@ -198,7 +204,10 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.trending_up,
               iconColor: AppColors.iconAmelioration,
               backgroundColor: AppColors.cardAmelioration,
-              value: '+${data.ameliorationMoyenne}%',
+              // "+12%" si la douleur baisse, "-5%" si elle augmente
+              value: data.ameliorationMoyenne >= 0
+                  ? '+${data.ameliorationMoyenne}%'
+                  : '${data.ameliorationMoyenne}%',
               label: AppStrings.ameliorationMoyenne,
             ),
           ],

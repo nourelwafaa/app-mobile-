@@ -3,7 +3,10 @@ import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/theme/form_style.dart';
 import 'package:lupus_plus/models/resultat_recherche.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // Add a patient: search a registered patient by email or phone, then add him.
 // Closes with true when a patient was added.
@@ -15,7 +18,8 @@ class AddPatientPage extends StatefulWidget {
 }
 
 class _AddPatientPageState extends State<AddPatientPage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service =
+      EspaceMedecinService(context.read<AuthProvider>().api); // backend (séance 6)
   final _formKey = GlobalKey<FormState>();
   final _saisieCtrl = TextEditingController();
 
@@ -45,12 +49,20 @@ class _AddPatientPageState extends State<AddPatientPage> {
       _erreur = null;
     });
 
-    final r = await _service.rechercherPatient(_saisieCtrl.text);
+    ResultatRecherche? r;
+    String? erreur;
+    try {
+      // GET /api/medecin/patients/recherche?identifiant=...
+      r = await _service.rechercherPatient(_saisieCtrl.text);
+      if (r == null) erreur = AppStrings.patientIntrouvable;
+    } catch (e) {
+      erreur = e.toString(); // ex. « Numéro de téléphone invalide »
+    }
     if (!mounted) return;
     setState(() {
       _recherche = false;
       _resultat = r;
-      _erreur = r == null ? AppStrings.patientIntrouvable : null;
+      _erreur = erreur;
     });
   }
 
@@ -59,7 +71,19 @@ class _AddPatientPageState extends State<AddPatientPage> {
     if (r == null || r.dejaSuivi) return;
 
     setState(() => _ajout = true);
-    await _service.ajouterPatient(r.patient);
+    try {
+      // POST /api/medecin/patients (crée aussi l'accès au dossier)
+      await _service.ajouterPatient(r.patient.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _ajout = false;
+        _erreur = e.toString();
+      });
+      return;
+    }
+    // Prévient la liste des patients et l'accueil.
+    MedecinService.patientsChanged.value++;
     if (!mounted) return;
     Navigator.pop(context, true);
   }

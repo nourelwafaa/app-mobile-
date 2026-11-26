@@ -6,7 +6,10 @@ import 'package:lupus_plus/features/medecin/patients/patient_fiche_page.dart';
 import 'package:lupus_plus/features/medecin/patients/widgets/chip_filtre.dart';
 import 'package:lupus_plus/models/alerte.dart';
 import 'package:lupus_plus/models/patient.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // The alerts page: "À traiter" and "Traitées" tabs.
 class AlertesPage extends StatefulWidget {
@@ -17,7 +20,7 @@ class AlertesPage extends StatefulWidget {
 }
 
 class _AlertesPageState extends State<AlertesPage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service; // backend (séance 6)
 
   List<Alerte> _alertes = [];
   bool _chargement = true;
@@ -27,6 +30,7 @@ class _AlertesPageState extends State<AlertesPage> {
   @override
   void initState() {
     super.initState();
+    _service = EspaceMedecinService(context.read<AuthProvider>().api);
     _charger();
     // Reload when an alert is handled.
     MedecinService.alertesChanged.addListener(_charger);
@@ -58,7 +62,18 @@ class _AlertesPageState extends State<AlertesPage> {
 
   // "Marquer comme traitée".
   Future<void> _traiter(Alerte a) async {
-    await _service.marquerAlerteTraitee(a.id);
+    try {
+      // PUT /api/medecin/alertes/:id/traitee
+      await _service.traiterAlerte(a.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+    // Recharge cette page, la liste des patients et l'accueil.
+    MedecinService.alertesChanged.value++;
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(AppStrings.alerteTraitee)),
@@ -67,8 +82,15 @@ class _AlertesPageState extends State<AlertesPage> {
 
   // Tap on a card: opens the patient file.
   Future<void> _ouvrirFiche(Alerte a) async {
-    final patient = await _service.getPatient(a.patientId);
-    if (patient == null || !mounted) return;
+    // GET /api/medecin/patients/:id
+    Patient? trouve;
+    try {
+      trouve = await _service.getPatient(a.patientId);
+    } catch (_) {
+      trouve = null;
+    }
+    if (trouve == null || !mounted) return;
+    final patient = trouve;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => PatientFichePage(patient: patient)),
     );

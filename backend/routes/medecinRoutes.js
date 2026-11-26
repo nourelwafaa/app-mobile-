@@ -4,6 +4,7 @@ const { verifierToken, autoriserRoles } = require("../middleware/authMiddleware"
 const traitementController = require("../controllers/traitementController");
 const agendaController = require("../controllers/agendaController");
 const dossierController = require("../controllers/dossierController");
+const medecinController = require("../controllers/medecinController");
 
 // Toutes ces routes : connecté + rôle médecin
 router.use(verifierToken, autoriserRoles("medecin"));
@@ -12,8 +13,21 @@ router.use(verifierToken, autoriserRoles("medecin"));
 router.get("/patients/:patientId/traitements", traitementController.traitementsPatient);
 router.post("/patients/:patientId/traitements", traitementController.prescrireTraitement);
 
-// Patients suivis (version simple, complétée en séance 6)
-router.get("/patients", agendaController.mesPatients);
+// Patients suivis : liste, recherche, ajout, un patient (séance 6)
+// (« /patients/recherche » doit rester avant « /patients/:patientId »)
+router.get("/patients", medecinController.mesPatients);
+router.get("/patients/recherche", medecinController.rechercherPatient);
+router.post("/patients", medecinController.ajouterPatient);
+router.get("/patients/:patientId", medecinController.unPatient);
+
+// Alertes des patients suivis (séance 6)
+router.get("/alertes", medecinController.mesAlertes);
+router.put("/alertes/:id/traitee", medecinController.traiterAlerte);
+
+// Accueil + profil du médecin (séance 6)
+router.get("/accueil", medecinController.accueil);
+router.get("/profil", medecinController.monProfil);
+router.put("/profil", medecinController.majProfil);
 
 // Agenda : rendez-vous + analyses (séance 4)
 router.get("/rendez-vous", agendaController.agendaMedecin);

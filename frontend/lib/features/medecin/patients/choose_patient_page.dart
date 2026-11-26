@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/models/patient.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // "Choisir un patient": search + list. Closes with the chosen Patient
 // (null if the doctor goes back).
@@ -14,8 +16,6 @@ class ChoosePatientPage extends StatefulWidget {
 }
 
 class _ChoosePatientPageState extends State<ChoosePatientPage> {
-  final MedecinService _service = MedecinService();
-
   List<Patient> _patients = [];
   bool _chargement = true;
   String _recherche = '';
@@ -27,7 +27,14 @@ class _ChoosePatientPageState extends State<ChoosePatientPage> {
   }
 
   Future<void> _charger() async {
-    final liste = await _service.getPatients();
+    // GET /api/medecin/patients (en cas d'erreur : liste vide)
+    final service = EspaceMedecinService(context.read<AuthProvider>().api);
+    List<Patient> liste;
+    try {
+      liste = await service.getPatients();
+    } catch (_) {
+      liste = [];
+    }
     liste.sort((a, b) => a.nom.compareTo(b.nom)); // alphabetical
     if (!mounted) return;
     setState(() {

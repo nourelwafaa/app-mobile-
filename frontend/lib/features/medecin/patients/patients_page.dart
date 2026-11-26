@@ -5,7 +5,10 @@ import 'package:lupus_plus/core/utils/date_format.dart';
 import 'package:lupus_plus/features/medecin/patients/patient_fiche_page.dart';
 import 'package:lupus_plus/features/medecin/patients/widgets/chip_filtre.dart';
 import 'package:lupus_plus/models/patient.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // The 3 filters of the list.
 enum _Filtre { tous, alerte, rdv }
@@ -21,7 +24,7 @@ class PatientsPage extends StatefulWidget {
 }
 
 class _PatientsPageState extends State<PatientsPage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service; // backend (séance 6)
 
   List<Patient> _patients = [];
   Set<int> _idsRdvSemaine = {}; // patients with an appointment this week
@@ -34,6 +37,7 @@ class _PatientsPageState extends State<PatientsPage> {
   @override
   void initState() {
     super.initState();
+    _service = EspaceMedecinService(context.read<AuthProvider>().api);
     _charger();
     // Reload when a patient or an appointment is added.
     MedecinService.patientsChanged.addListener(_charger);
@@ -50,14 +54,13 @@ class _PatientsPageState extends State<PatientsPage> {
 
   Future<void> _charger() async {
     try {
-      final r = await Future.wait([
-        _service.getPatients(),
-        _service.getPatientsAvecRdvSemaine(),
-      ]);
+      // GET /api/medecin/patients (chaque patient dit s'il a un RDV cette semaine)
+      final liste = await _service.getPatients();
       if (!mounted) return;
       setState(() {
-        _patients = r[0] as List<Patient>;
-        _idsRdvSemaine = r[1] as Set<int>;
+        _patients = liste;
+        _idsRdvSemaine =
+            liste.where((p) => p.rdvCetteSemaine).map((p) => p.id).toSet();
         _chargement = false;
         _erreur = false;
       });
