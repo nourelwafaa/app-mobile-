@@ -4,9 +4,11 @@ import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/theme/form_style.dart';
 import 'package:lupus_plus/models/document_medical.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/dossier_service.dart';
+import 'package:provider/provider.dart';
 
-// Form to add a document to a patient (no real file yet).
+// Form to add a document to a patient (no real file yet → backend, séance 5).
 // Closes with true when saved.
 class AddDocumentPage extends StatefulWidget {
   final int patientId;
@@ -23,7 +25,6 @@ class AddDocumentPage extends StatefulWidget {
 }
 
 class _AddDocumentPageState extends State<AddDocumentPage> {
-  final MedecinService _service = MedecinService();
   final _formKey = GlobalKey<FormState>();
 
   final _titreCtrl = TextEditingController();
@@ -75,12 +76,22 @@ class _AddDocumentPageState extends State<AddDocumentPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _enregistrement = true);
 
-    await _service.addDocument(
-      patientId: widget.patientId,
-      titre: _titreCtrl.text.trim(),
-      type: _type,
-      date: _date,
-    );
+    try {
+      // POST /api/medecin/patients/:patientId/documents
+      await DossierService(context.read<AuthProvider>().api).ajouterDocument(
+        patientId: widget.patientId,
+        titre: _titreCtrl.text.trim(),
+        type: _type,
+        date: _date,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _enregistrement = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
 
     if (!mounted) return;
     Navigator.pop(context, true);

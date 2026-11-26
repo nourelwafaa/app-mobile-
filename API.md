@@ -445,3 +445,79 @@ Erreurs : **400** (statut invalide, ou rendez-vous déjà terminé/annulé), **4
 
 Réponse **201** : `"message": "Analyse ajoutée"` + `analyse`
 Erreurs : **400** (champ manquant ou invalide), **404** (« Patient introuvable parmi vos patients »)
+
+---
+
+**Dossier médical (séance 5)** : c'est le **médecin** qui ajoute les documents ; le patient les **consulte**.
+Pas encore de vrai fichier : seulement titre, type et date (`fichier_url` vaut `null`).
+Un médecin qui suit un patient a automatiquement accès à son dossier (table `acces_dossier`).
+
+Types de document : `ordonnance`, `analyse`, `compte_rendu`, `imagerie`, `autre`.
+
+## 19. Documents du patient
+
+`GET /api/patients/me/documents` — token obligatoire, rôle patient
+Écran : « Dossier médical »
+
+```json
+{
+  "message": "Documents du dossier",
+  "documents": [
+    {
+      "id": 2,
+      "titre": "Ordonnance Plaquenil",
+      "type_document": "ordonnance",
+      "date_document": "2026-11-02",
+      "fichier_url": null
+    }
+  ]
+}
+```
+
+- Du plus récent au plus ancien
+
+## 20. Dossier partagé avec
+
+`GET /api/patients/me/partages` — token obligatoire, rôle patient
+Écran : « Dossier médical », section « Partagé avec »
+
+```json
+{
+  "message": "Dossier partagé avec",
+  "partages": [
+    {
+      "medecin_id": 3,
+      "medecin_nom": "Karim Martin",
+      "medecin_specialite": "Rhumatologue",
+      "date_autorisation": "2026-11-26"
+    }
+  ]
+}
+```
+
+## 21. Documents d'un patient (médecin)
+
+`GET /api/medecin/patients/:patientId/documents` — token obligatoire, rôle médecin
+Écran : fiche patient, onglet « Documents »
+
+Réponse **200** : même format qu'au §19.
+Erreur : **404** (« Dossier introuvable ou non partagé avec vous »)
+
+## 22. Ajouter un document (médecin)
+
+`POST /api/medecin/patients/:patientId/documents` — token obligatoire, rôle médecin
+Écran : `AddDocumentPage` (fiche patient, action rapide « Compte rendu »)
+
+```json
+{
+  "titre": "Radio des mains",
+  "type_document": "imagerie",
+  "date_document": "2026-11-25"
+}
+```
+
+- `titre` et `type_document` : obligatoires ; `date_document` : optionnel (aujourd'hui par défaut)
+- Le patient doit être suivi par le médecin
+
+Réponse **201** : `"message": "Document ajouté"` + `document` (même format qu'au §19)
+Erreurs : **400** (titre manquant, type ou date invalide), **404** (« Patient introuvable parmi vos patients »)

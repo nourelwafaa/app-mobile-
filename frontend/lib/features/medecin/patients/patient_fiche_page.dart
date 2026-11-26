@@ -12,6 +12,7 @@ import 'package:lupus_plus/models/patient.dart';
 import 'package:lupus_plus/models/traitement.dart';
 import 'package:lupus_plus/providers/auth_provider.dart';
 import 'package:lupus_plus/services/agenda_service.dart';
+import 'package:lupus_plus/services/dossier_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
 import 'package:provider/provider.dart';
 
@@ -54,14 +55,22 @@ class _PatientFichePageState extends State<PatientFichePage> {
   }
 
   Future<void> _charger() async {
-    final r = await Future.wait([
-      _service.getTraitements(_p.id),
-      _service.getDocuments(_p.id),
-    ]);
+    final dossier = DossierService(context.read<AuthProvider>().api);
+    final traitements = await _service.getTraitements(_p.id);
+
+    // Documents : backend (séance 5). La fiche utilise encore les faux patients
+    // (séance 6) : si ce patient n'existe pas dans la base, la liste reste vide.
+    List<DocumentMedical> documents;
+    try {
+      documents = await dossier.getDocumentsPatient(_p.id);
+    } catch (_) {
+      documents = [];
+    }
+
     if (!mounted) return;
     setState(() {
-      _traitements = r[0] as List<Traitement>;
-      _documents = r[1] as List<DocumentMedical>;
+      _traitements = traitements;
+      _documents = documents;
       _chargement = false;
     });
   }
