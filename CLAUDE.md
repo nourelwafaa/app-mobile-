@@ -35,14 +35,14 @@ app-mobile-/
 │   ├── server.js
 │   ├── config/db.js        # Pool pg ; les DATE sont renvoyées en texte "AAAA-MM-JJ" (types.setTypeParser(1082))
 │   ├── middleware/authMiddleware.js   # verifierToken, autoriserRoles("patient" | "medecin")
-│   ├── controllers/        # authController, patientController, suiviController, traitementController, agendaController
+│   ├── controllers/        # authController, patientController, suiviController, traitementController, agendaController, dossierController
 │   ├── routes/             # authRoutes (/api/auth), patientRoutes (/api/patients), medecinRoutes (/api/medecin)
-│   └── database/           # 01 à 05 *.sql : le schéma complet (23 tables) ; 06_index_prises.sql (unicité des prises)
+│   └── database/           # 01 à 05 *.sql : le schéma complet (23 tables) ; 06_index_prises.sql (unicité des prises) ; 07_documents.sql (fichier facultatif + partage automatique)
 └── frontend/lib/
     ├── core/api_client.dart        # ApiClient (get/post/put, token Bearer, erreurs → ApiException)
     ├── providers/auth_provider.dart # kDemoMode = false : l'auth utilise le vrai backend
     ├── models/
-    ├── services/           # MON dossier : appels API (suivi_service.dart, traitement_service.dart, agenda_service.dart…) ; medecin_service.dart = fausses données des binômes
+    ├── services/           # MON dossier : appels API (suivi_service.dart, traitement_service.dart, agenda_service.dart, dossier_service.dart…) ; medecin_service.dart = fausses données des binômes
     ├── screens/            # écrans patient + auth (binômes)
     └── features/medecin/   # écrans médecin (binômes)
 ```
@@ -76,8 +76,8 @@ app-mobile-/
 - [x] Séance 2 : `POST /api/patients/me/suivi`, `GET /api/patients/me/suivi/aujourdhui`, `GET /api/patients/me/stats?periode=7|30|90` — branchés (`suivi_screen.dart`, `stats_screen.dart`). Douleur ≥ 8 → alerte dans `alertes`.
 - [x] Séance 3 : `GET/POST /api/patients/me/traitements`, `GET /api/patients/me/prises/aujourdhui`, `POST /api/patients/me/prises`, `GET/POST /api/medecin/patients/:patientId/traitements` (patient suivi dans `suivi_medical`). Heures de rappel automatiques selon `fois_par_jour` (1 → 08:00 ; 2 → 08:00, 20:00 ; 3 → 08:00, 14:00, 20:00…). Branchés côté patient : `rappels_screen.dart` (onglet Médicaments), carte « Aujourd'hui » de `home_screen.dart`, `AddTraitementPage.patient()`. **Côté médecin, `AddTraitementPage` et la fiche patient restent sur `medecin_service.dart` : à brancher en séance 6.**
 - [x] Séance 4 : le **médecin crée** les rendez-vous et les analyses, le **patient consulte** seulement. `GET /api/patients/me/rendez-vous`, `GET /api/patients/me/analyses`, `GET /api/medecin/patients` (version simple), `GET/POST /api/medecin/rendez-vous`, `PUT /api/medecin/rendez-vous/:id/statut`, `POST /api/medecin/analyses` (pas encore d'écran : Postman). Branchés : agenda patient, onglets Rendez-vous / Analyses de `rappels_screen.dart`, ligne RDV de l'accueil, `AgendaPage` + `NewRdvPage` médecin (vrais patients aussi dans les actions rapides et la fiche). Les boutons « + Ajouter un rendez-vous » côté patient seront supprimés par une binôme.
-- [ ] **Séance 5 (prochaine)** : dossier médical + partage (`add_document_page.dart`, `dossier_screen.dart`)
-- [ ] Séance 6 : espace médecin réel (ajout de patient, liste, fiche, alertes, tableau de bord) — remplacer les fausses données de `medecin_service.dart` (dont les traitements : API déjà prêtes, voir API.md §11 ; compléter `GET /api/medecin/patients` §14 ; accueil médecin : compteurs et prochain jour de RDV)
+- [x] Séance 5 : dossier médical. Le **médecin ajoute** les documents (titre, type, date ; **pas encore de vrai fichier**, `fichier_url` facultatif), le **patient consulte**. Un médecin qui suit un patient a accès à son dossier (`acces_dossier`). `GET /api/patients/me/documents`, `GET /api/patients/me/partages`, `GET/POST /api/medecin/patients/:patientId/documents`. Branchés : `dossier_screen.dart` (documents + « Partagé avec »), `AddDocumentPage`, onglet Documents de la fiche patient. Le bouton « Ajouter un document » côté patient sera supprimé par une binôme.
+- [ ] **Séance 6 (prochaine)** : espace médecin réel (ajout de patient — **créer aussi la ligne `acces_dossier`** —, liste, fiche, alertes, tableau de bord) — remplacer les fausses données de `medecin_service.dart` (dont les traitements : API déjà prêtes, voir API.md §11 ; compléter `GET /api/medecin/patients` §14 ; accueil médecin : compteurs et prochain jour de RDV)
 - [ ] Séance 7 : messagerie médecin ↔ patient
 - [ ] Séance 8 : recherche, communauté, conseils, LupIA, notifications
 - [ ] Séance 9 : mot de passe oublié
