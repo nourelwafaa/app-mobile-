@@ -19,11 +19,12 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [
-          HomeScreen(),
-          SuiviScreen(showBack: false),
-          RappelsScreen(),
-          ProfilScreen(),
+        children: [
+          // La carte « Rappels et rendez-vous » de l'accueil ouvre l'onglet 2
+          HomeScreen(onOpenRappels: () => setState(() => _index = 2)),
+          const SuiviScreen(showBack: false),
+          const RappelsScreen(),
+          const ProfilScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(

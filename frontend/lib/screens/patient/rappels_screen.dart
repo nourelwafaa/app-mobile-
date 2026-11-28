@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +10,6 @@ import '../../providers/auth_provider.dart';
 import '../../services/agenda_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
-import 'agenda_screen.dart';
 
 /// Rappels : prises du jour, rendez-vous et analyses à venir (backend).
 /// Les rendez-vous et analyses sont créés par le médecin.
@@ -27,6 +27,14 @@ class _Rappel {
   _Rappel(this.heure, this.titre, this.detail, {this.pris = false, this.rappelId});
 }
 
+/// Document ajouté par le patient pour son médecin
+class _Doc {
+  final String nom;
+  final int taille; // en octets
+  final int onglet; // 1 = rendez-vous, 2 = analyses
+  _Doc(this.nom, this.taille, this.onglet);
+}
+
 class _RappelsScreenState extends State<RappelsScreen> {
   late final TraitementService _service;
   late final AgendaService _agenda;
@@ -38,6 +46,7 @@ class _RappelsScreenState extends State<RappelsScreen> {
   List<_Rappel> _meds = [];
   List<_Rappel> _rdv = [];
   List<_Rappel> _analyses = [];
+  final List<_Doc> _docs = [];
 
   @override
   void initState() {
@@ -133,6 +142,32 @@ class _RappelsScreenState extends State<RappelsScreen> {
     await _charger();
   }
 
+  /// Choisit un document (PDF ou image) à enregistrer pour le médecin.
+  /// TODO : envoyer le fichier au backend (table documents_medicaux,
+  /// 04_dossiers_recherche_messages.sql) quand la route existera.
+  Future<void> _addDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final f = result.files.first;
+      if (!mounted) return;
+      setState(() => _docs.add(_Doc(f.name, f.size, _tab)));
+      showSnack(context, 'Document ajouté');
+    } catch (_) {
+      if (mounted) {
+        showSnack(context, "Impossible d'ajouter le document", error: true);
+      }
+    }
+  }
+
+  String _taille(int octets) => octets >= 1024 * 1024
+      ? '${(octets / (1024 * 1024)).toStringAsFixed(1)} Mo'
+      : '${(octets / 1024).ceil()} Ko';
+
   static const _messagesVides = [
     "Aucune prise de médicament prévue aujourd'hui",
     'Aucun rendez-vous à venir',
@@ -142,6 +177,7 @@ class _RappelsScreenState extends State<RappelsScreen> {
   @override
   Widget build(BuildContext context) {
     final list = [_meds, _rdv, _analyses][_tab];
+    final mesDocs = _docs.where((d) => d.onglet == _tab).toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Rappels'), automaticallyImplyLeading: false),
       body: SafeArea(
@@ -224,16 +260,63 @@ class _RappelsScreenState extends State<RappelsScreen> {
                   ]),
                 ),
               ),
+
+            // Documents ajoutés pour le médecin (onglets Rendez-vous et Analyses)
+            if (_tab != 0 && mesDocs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('Documents ajoutés',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              for (final d in mesDocs)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SectionCard(
+                    child: Row(children: [
+                      const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.soft,
+                        child: Icon(Icons.description_outlined,
+                            size: 16, color: AppColors.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(d.nom,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700)),
+                            Text('${_taille(d.taille)} · Pour le médecin',
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.muted)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            size: 18, color: AppColors.muted),
+                        onPressed: () => setState(() => _docs.remove(d)),
+                      ),
+                    ]),
+                  ),
+                ),
+            ],
+
             const SizedBox(height: 8),
-            SecondaryButton(
-              label: _tab == 0
-                  ? '+ Ajouter un médicament'
-                  : '+ Ajouter un rendez-vous',
-              onPressed: () => _tab == 0
-                  ? _ajouterMedicament()
-                  : Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const AgendaScreen())),
-            ),
+            if (_tab == 0)
+              SecondaryButton(
+                label: '+ Ajouter un médicament',
+                onPressed: _ajouterMedicament,
+              )
+            // Onglet Rendez-vous : pas de bouton, c'est le médecin qui crée les RDV
+            else if (_tab == 2)
+              SecondaryButton(
+                label: '+ Ajouter un document',
+                onPressed: _addDocument,
+              ),
           ],
         ),
       ),

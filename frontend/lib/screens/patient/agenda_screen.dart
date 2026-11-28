@@ -197,11 +197,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     ]),
                   ),
                 ),
-            const SizedBox(height: 10),
-            PrimaryButton(
-              label: '+ Ajouter un rendez-vous',
-              onPressed: () => showSnack(context, 'Bientôt disponible'),
-            ),
+            // Pas de bouton « Ajouter un rendez-vous » : c'est le médecin qui crée les RDV.
           ],
         ),
       ),

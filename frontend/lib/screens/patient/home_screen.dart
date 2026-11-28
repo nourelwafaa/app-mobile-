@@ -2,23 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
-import '../../providers/auth_provider.dart';
 import '../../models/demande_suivi.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/agenda_service.dart';
 import '../../services/demandes_service.dart';
 import '../../services/messages_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
-import 'agenda_screen.dart';
 import 'dossier_screen.dart';
 import 'lupia_screen.dart';
 import 'messages_screen.dart';
+import 'rappels_screen.dart';
 import 'stats_screen.dart';
 import 'suivi_screen.dart';
 import 'trouver_pro_screen.dart';
 
+// Couleurs pastel (mêmes que l'accueil du médecin)
+const _lavande = Color(0xFFE9DFFE);
+const _rose = Color(0xFFFDE5F0);
+const _menthe = Color(0xFFE7F7F4);
+const _iconLavande = Color(0xFF7B5CE6);
+const _iconRose = Color(0xFFE0526F);
+const _iconMenthe = Color(0xFF2EAD8A);
+const _rond = Color(0xFFD4ACFC);
+const _titre = Color(0xFF4B1D66);
+const _gris = Color(0xFF655D70);
+
+/// Accueil patient. Design de la binôme ; données du backend :
+/// icône Messages (non lus), demandes de suivi des médecins,
+/// prochaine prise et prochain rendez-vous dans la carte « Rappels et rendez-vous ».
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  /// Optionnel : permet d'ouvrir l'onglet « Rapports » depuis la carte
+  /// « Rappels et rendez-vous » (voir main_shell.dart).
+  final VoidCallback? onOpenRappels;
+
+  const HomeScreen({super.key, this.onOpenRappels});
 
   void _go(BuildContext context, Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => page));
@@ -27,106 +45,223 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final prenom = context.watch<AuthProvider>().user?.prenom ?? '';
 
-    final tiles = <(IconData, String, VoidCallback)>[
-      (Icons.edit_note, 'Suivi du jour',
-          () => _go(context, const SuiviScreen())),
-      (Icons.bar_chart, 'Mes statistiques',
-          () => _go(context, const StatsScreen())),
-      (Icons.folder_open, 'Dossier médical',
-          () => _go(context, const DossierScreen())),
-      (Icons.location_on_outlined, 'Trouver un pro',
-          () => _go(context, const TrouverProScreen())),
-      (Icons.lightbulb_outline, 'Conseils et astuces',
-          () => showSnack(context, 'Bientôt disponible')),
-      (Icons.auto_awesome, 'LupIA', () => _go(context, const LupiaScreen())),
-    ];
-
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(20),
+      child: Stack(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.filter_vintage, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text('Lupus+',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                        fontSize: 16)),
+          // Grand papillon pâle en haut à droite (décoration)
+          Positioned(
+            top: 60,
+            right: -30,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.18,
+                child: Image.asset('assets/images/lupus_logo.png', width: 190),
               ),
-              // Messages avec ses médecins (séance 7), point rouge si non lus
-              const _IconeMessages(),
-              IconButton(
-                icon: const Icon(Icons.notifications_none,
-                    color: AppColors.primary),
-                onPressed: () => showSnack(context, 'Aucune notification'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Bonjour, $prenom',
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w800)),
-          const Text('Prenez soin de vous aujourd\'hui',
-              style: TextStyle(fontSize: 12, color: AppColors.muted)),
-          const SizedBox(height: 16),
-
-          // Demandes de suivi des médecins (consentement), visible seulement s'il y en a
-          const _DemandesSuivi(),
-
-          // Médicament (prises du jour) et prochain RDV : backend.
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Aujourd'hui",
-                    style: TextStyle(color: Colors.white70, fontSize: 11)),
-                const SizedBox(height: 8),
-                const _ProchainePrise(),
-                const Divider(color: Colors.white24, height: 24),
-                InkWell(
-                  onTap: () => _go(context, const AgendaScreen()),
-                  child: const _ProchainRdv(),
-                ),
-              ],
             ),
           ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.9,
+          ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              for (final t in tiles)
-                SectionCard(
-                  onTap: t.$3,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              // ---- En-tête ----
+              Row(
+                children: [
+                  Image.asset('assets/images/lupus_logo.png', height: 44),
+                  const SizedBox(width: 10),
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: AppColors.soft,
-                        child:
-                            Icon(t.$1, size: 16, color: AppColors.primary),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(t.$2,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700)),
+                      Text('Lupus+',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
+                      Text('Espace patient',
+                          style: TextStyle(fontSize: 12, color: _gris)),
                     ],
                   ),
+                  const Spacer(),
+                  // Messages avec ses médecins (séance 7), point rouge si non lus
+                  const _IconeMessages(),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none,
+                        size: 26, color: AppColors.primary),
+                    onPressed: () => showSnack(context, 'Aucune notification'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                prenom.isEmpty ? 'Bonjour' : 'Bonjour, $prenom',
+                style: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w700, color: _titre),
+              ),
+              const SizedBox(height: 4),
+              const Text("Prenez soin de vous aujourd'hui",
+                  style: TextStyle(fontSize: 13, color: _gris)),
+              const SizedBox(height: 22),
+
+              // Demandes de suivi des médecins (consentement), visible seulement s'il y en a
+              const _DemandesSuivi(),
+
+              // ---- Carte violette : suivi du jour ----
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Comment vous sentez-vous aujourd'hui ?",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            height: 1.3)),
+                    const SizedBox(height: 6),
+                    const Text(
+                        'Prenez une minute pour noter votre douleur, '
+                        'votre fatigue et votre humeur.',
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 12, height: 1.5)),
+                    const SizedBox(height: 14),
+                    ElevatedButton(
+                      onPressed: () => _go(context, const SuiviScreen()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        elevation: 0,
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                      ),
+                      child: const Text('Faire mon suivi du jour',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ---- Titre de section ----
+              const Row(
+                children: [
+                  Icon(Icons.grid_view_rounded,
+                      size: 20, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text('Mon espace',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2B1B3F))),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // ---- 6 cartes pastel en 2 colonnes ----
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                // Baisse cette valeur (ex. 1.15) si le texte déborde
+                childAspectRatio: 1.3,
+                children: [
+                  _NavCard(
+                    couleur: _rose,
+                    iconColor: _iconRose,
+                    icon: Icons.edit_note,
+                    titre: 'Suivi du jour',
+                    sousTitre: 'Notez vos symptômes',
+                    onTap: () => _go(context, const SuiviScreen()),
+                  ),
+                  _NavCard(
+                    couleur: _menthe,
+                    iconColor: _iconMenthe,
+                    icon: Icons.bar_chart,
+                    titre: 'Mes statistiques',
+                    sousTitre: 'Voir mon évolution',
+                    onTap: () => _go(context, const StatsScreen()),
+                  ),
+                  _NavCard(
+                    couleur: _lavande,
+                    iconColor: _iconLavande,
+                    icon: Icons.folder_open,
+                    titre: 'Dossier médical',
+                    sousTitre: 'Mes documents',
+                    onTap: () => _go(context, const DossierScreen()),
+                  ),
+                  _NavCard(
+                    couleur: _lavande,
+                    iconColor: _iconLavande,
+                    icon: Icons.location_on_outlined,
+                    titre: 'Trouver un pro',
+                    sousTitre: 'Médecins près de moi',
+                    onTap: () => _go(context, const TrouverProScreen()),
+                  ),
+                  _NavCard(
+                    couleur: _menthe,
+                    iconColor: _iconMenthe,
+                    icon: Icons.auto_awesome,
+                    titre: 'LupIA',
+                    sousTitre: 'Votre assistante',
+                    onTap: () => _go(context, const LupiaScreen()),
+                  ),
+                  _NavCard(
+                    couleur: _rose,
+                    iconColor: _iconRose,
+                    icon: Icons.lightbulb_outline,
+                    titre: 'Conseils',
+                    sousTitre: 'Astuces au quotidien',
+                    onTap: () => showSnack(context, 'Bientôt disponible'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ---- Carte « Rappels et rendez-vous » ----
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => onOpenRappels != null
+                      ? onOpenRappels!()
+                      : _go(context, const RappelsScreen()),
+                  child: const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: _rond,
+                          child: Icon(Icons.calendar_month,
+                              size: 20, color: AppColors.primary),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Rappels et rendez-vous',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2B1B3F))),
+                              // Prochaine prise + prochain RDV (backend)
+                              _ResumeRappels(),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: _gris),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -135,113 +270,146 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Ligne « médicament » de la carte Aujourd'hui :
-/// première prise du jour pas encore faite (GET /api/patients/me/prises/aujourdhui).
-class _ProchainePrise extends StatefulWidget {
-  const _ProchainePrise();
+/// Carte pastel de l'accueil : icône + titre + courte phrase.
+class _NavCard extends StatelessWidget {
+  final Color couleur;
+  final Color iconColor;
+  final IconData icon;
+  final String titre;
+  final String sousTitre;
+  final VoidCallback onTap;
+
+  const _NavCard({
+    required this.couleur,
+    required this.iconColor,
+    required this.icon,
+    required this.titre,
+    required this.sousTitre,
+    required this.onTap,
+  });
 
   @override
-  State<_ProchainePrise> createState() => _ProchainePriseState();
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: couleur,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(180),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2B1B3F))),
+                const SizedBox(height: 2),
+                Text(sousTitre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: _gris)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _ProchainePriseState extends State<_ProchainePrise> {
-  String _texte = 'Chargement…';
+/// Sous-titre de la carte « Rappels et rendez-vous » :
+/// prochaine prise du jour (GET /api/patients/me/prises/aujourdhui)
+/// et prochain rendez-vous (GET /api/patients/me/rendez-vous).
+/// Tant que rien n'est chargé : le texte de la binôme.
+class _ResumeRappels extends StatefulWidget {
+  const _ResumeRappels();
+
+  @override
+  State<_ResumeRappels> createState() => _ResumeRappelsState();
+}
+
+class _ResumeRappelsState extends State<_ResumeRappels> {
+  String? _prise;
+  String? _rdv;
 
   @override
   void initState() {
     super.initState();
-    _charger();
+    _chargerPrise();
+    _chargerRdv();
   }
 
-  Future<void> _charger() async {
-    String texte;
+  Future<void> _chargerPrise() async {
     try {
       final prises = await TraitementService(context.read<AuthProvider>().api)
           .getPrisesDuJour();
       final aFaire = prises.where((p) => !p.pris);
-      if (prises.isEmpty) {
-        texte = "Aucun médicament prévu aujourd'hui";
-      } else if (aFaire.isEmpty) {
+      String? texte;
+      if (prises.isNotEmpty && aFaire.isEmpty) {
         texte = 'Toutes les prises du jour sont faites';
-      } else {
+      } else if (aFaire.isNotEmpty) {
         final p = aFaire.first;
-        texte = '${p.nom} ${p.dosage}\nProchaine prise à ${p.heure}';
+        texte = '${p.nom} ${p.dosage} · ${p.heure}';
       }
+      if (mounted) setState(() => _prise = texte);
     } catch (_) {
-      texte = 'Traitements indisponibles';
+      // On garde le texte fixe si le serveur ne répond pas.
     }
-    if (mounted) setState(() => _texte = texte);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      const Icon(Icons.medication, color: Colors.white, size: 20),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(_texte,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 13)),
-      ),
-    ]);
-  }
-}
-
-/// Ligne « RDV » de la carte Aujourd'hui :
-/// prochain rendez-vous planifié (GET /api/patients/me/rendez-vous).
-class _ProchainRdv extends StatefulWidget {
-  const _ProchainRdv();
-
-  @override
-  State<_ProchainRdv> createState() => _ProchainRdvState();
-}
-
-class _ProchainRdvState extends State<_ProchainRdv> {
-  String _texte = 'Chargement…';
-
-  @override
-  void initState() {
-    super.initState();
-    _charger();
-  }
-
-  Future<void> _charger() async {
-    String texte;
+  Future<void> _chargerRdv() async {
     try {
       final rdvs = await AgendaService(context.read<AuthProvider>().api)
           .getMesRendezVous();
-      if (rdvs.isEmpty) {
-        texte = 'Aucun rendez-vous à venir';
-      } else {
-        final r = rdvs.first; // déjà trié du plus proche au plus lointain
-        final titre = r.docteur != null ? 'RDV avec ${r.docteur}' : 'RDV : ${r.motif}';
-        // "Jeudi 12 nov · 10:30"
-        final quand =
-            '${cap(DateFormat('EEEE d MMM', 'fr_FR').format(r.dateHeure).replaceAll('.', ''))}'
-            ' · ${DateFormat('HH:mm').format(r.dateHeure)}';
-        texte = '$titre\n$quand';
-      }
+      if (rdvs.isEmpty) return;
+      final r = rdvs.first; // déjà trié du plus proche au plus lointain
+      final titre =
+          r.docteur != null ? 'RDV avec ${r.docteur}' : 'RDV : ${r.motif}';
+      // "Jeudi 12 nov · 10:30"
+      final quand =
+          '${cap(DateFormat('EEEE d MMM', 'fr_FR').format(r.dateHeure).replaceAll('.', ''))}'
+          ' · ${DateFormat('HH:mm').format(r.dateHeure)}';
+      if (mounted) setState(() => _rdv = '$titre, $quand');
     } catch (_) {
-      texte = 'Rendez-vous indisponibles';
+      // On garde le texte fixe si le serveur ne répond pas.
     }
-    if (mounted) setState(() => _texte = texte);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      const Icon(Icons.event, color: Colors.white, size: 20),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(_texte,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 13)),
-      ),
-    ]);
+    const style = TextStyle(fontSize: 12, color: _gris);
+    if (_prise == null && _rdv == null) {
+      return const Text('Médicaments, consultations, analyses', style: style);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_prise != null)
+          Text(_prise!,
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+        if (_rdv != null)
+          Text(_rdv!,
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+      ],
+    );
   }
 }
 
@@ -289,7 +457,8 @@ class _IconeMessagesState extends State<_IconeMessages> {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+          const Icon(Icons.chat_bubble_outline,
+              size: 24, color: AppColors.primary),
           if (_nonLus)
             Positioned(
               right: -1,
