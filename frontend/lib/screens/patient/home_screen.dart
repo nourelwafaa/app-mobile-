@@ -9,6 +9,7 @@ import '../../services/demandes_service.dart';
 import '../../services/messages_service.dart';
 import '../../services/traitement_service.dart';
 import '../../widgets/common.dart';
+import 'conseils_screen.dart';
 import 'dossier_screen.dart';
 import 'lupia_screen.dart';
 import 'messages_screen.dart';
@@ -216,7 +217,7 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.lightbulb_outline,
                     titre: 'Conseils',
                     sousTitre: 'Astuces au quotidien',
-                    onTap: () => showSnack(context, 'Bientôt disponible'),
+                    onTap: () => _go(context, const ConseilsScreen()),
                   ),
                 ],
               ),
