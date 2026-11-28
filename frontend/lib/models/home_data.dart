@@ -10,6 +10,7 @@ class HomeData {
   final List<Patient> patientsRecents; // recent patients list
   final DateTime? prochainRdv; // jour du prochain RDV planifié (null s'il n'y en a pas)
   final int messagesNonLus; // point rouge sur l'icône Messages (séance 7)
+  final int notificationsNonLues; // point rouge sur la cloche (séance 8)
 
   const HomeData({
     required this.nomMedecin,
@@ -20,6 +21,7 @@ class HomeData {
     required this.patientsRecents,
     this.prochainRdv,
     this.messagesNonLus = 0,
+    this.notificationsNonLues = 0,
   });
 
   /// Réponse de GET /api/medecin/accueil (séance 6)
@@ -36,5 +38,7 @@ class HomeData {
             ? null
             : DateTime.parse(j['prochain_rdv'] as String),
         messagesNonLus: (j['messages_non_lus'] as num?)?.toInt() ?? 0,
+        notificationsNonLues:
+            (j['notifications_non_lues'] as num?)?.toInt() ?? 0,
       );
 }

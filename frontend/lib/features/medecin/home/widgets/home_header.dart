@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:lupus_plus/core/constants/app_strings.dart';
 import 'package:lupus_plus/core/theme/app_colors.dart';
 import 'package:lupus_plus/core/utils/name_utils.dart';
-import 'package:lupus_plus/services/medecin_service.dart';
 
 // Top of the home page: logo, app name, message and bell icons, greeting.
 class HomeHeader extends StatelessWidget {
   final String nomMedecin; // e.g. "Martin"
   final bool messagesNonLus; // point rouge sur l'icône Messages (GET /api/medecin/accueil)
+  final bool notificationsNonLues; // point rouge sur la cloche (GET /api/medecin/accueil)
   final VoidCallback? onMessages; // tap on the message icon
-  final VoidCallback? onNotifications; // tap on the bell (no page yet)
+  final VoidCallback? onNotifications; // tap on the bell
 
   const HomeHeader({
     super.key,
     required this.nomMedecin,
     this.messagesNonLus = false,
+    this.notificationsNonLues = false,
     this.onMessages,
     this.onNotifications,
   });
@@ -53,15 +54,11 @@ class HomeHeader extends StatelessWidget {
               afficherPastille: messagesNonLus,
               onTap: onMessages,
             ),
-           // The red dot appears only when there are unread notifications.
-            ValueListenableBuilder<int>(
-              valueListenable: MedecinService.notificationsChanged,
-              builder: (context, value, child) => _IconeAvecPastille(
-                icon: Icons.notifications_none,
-                afficherPastille:
-                    MedecinService().nombreNotificationsNonLues() > 0,
-                onTap: onNotifications,
-              ),
+            // The red dot appears only when there are unread notifications.
+            _IconeAvecPastille(
+              icon: Icons.notifications_none,
+              afficherPastille: notificationsNonLues,
+              onTap: onNotifications,
             ),
           ],
         ),

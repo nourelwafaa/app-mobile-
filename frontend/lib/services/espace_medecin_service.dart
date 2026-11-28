@@ -2,6 +2,7 @@ import '../core/api_client.dart';
 import '../models/alerte.dart';
 import '../models/home_data.dart';
 import '../models/medecin_profile.dart';
+import '../models/notification_medecin.dart';
 import '../models/patient.dart';
 import '../models/resultat_recherche.dart';
 
@@ -83,5 +84,25 @@ class EspaceMedecinService {
   /// PUT /api/medecin/profil
   Future<void> majProfil(MedecinProfile profil) async {
     await api.put('/medecin/profil', profil.toJson());
+  }
+
+  // ---------- Notifications (séance 8) ----------
+
+  /// GET /api/medecin/notifications (les plus récentes d'abord)
+  Future<List<NotificationMedecin>> getNotifications() async {
+    final data = await api.get('/medecin/notifications');
+    return ((data['notifications'] as List?) ?? [])
+        .map((n) => NotificationMedecin.fromJson(n as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// PUT /api/medecin/notifications/:id/lue
+  Future<void> marquerNotificationLue(int id) async {
+    await api.put('/medecin/notifications/$id/lue', {});
+  }
+
+  /// PUT /api/medecin/notifications/lues (« Tout marquer comme lu »)
+  Future<void> marquerToutesLues() async {
+    await api.put('/medecin/notifications/lues', {});
   }
 }

@@ -47,6 +47,7 @@ class _HomePageState extends State<HomePage> {
     MedecinService.rdvChanged.addListener(_recharger);
     MedecinService.alertesChanged.addListener(_recharger);
     MedecinService.messagesChanged.addListener(_recharger); // point rouge Messages
+    MedecinService.notificationsChanged.addListener(_recharger); // point rouge cloche
   }
   @override
   void dispose() {
@@ -54,6 +55,7 @@ class _HomePageState extends State<HomePage> {
     MedecinService.rdvChanged.removeListener(_recharger);
     MedecinService.alertesChanged.removeListener(_recharger);
     MedecinService.messagesChanged.removeListener(_recharger);
+    MedecinService.notificationsChanged.removeListener(_recharger);
     super.dispose();
   }
 
@@ -162,6 +164,7 @@ class _HomePageState extends State<HomePage> {
         HomeHeader(
           nomMedecin: data.nomMedecin,
           messagesNonLus: data.messagesNonLus > 0,
+          notificationsNonLues: data.notificationsNonLues > 0,
           onMessages: _ouvrirMessages,
           onNotifications: _ouvrirNotifications,
         ),

@@ -26,4 +26,29 @@ class NotificationMedecin {
     this.rdvDate,
     this.lu = false,
   });
+
+  /// Une ligne de GET /api/medecin/notifications (séance 8)
+  factory NotificationMedecin.fromJson(Map<String, dynamic> j) =>
+      NotificationMedecin(
+        id: (j['id'] as num).toInt(),
+        type: switch (j['type']) {
+          'message' => TypeNotification.message,
+          'alerte' => TypeNotification.alerte,
+          _ => TypeNotification.rendezVous,
+        },
+        titre: (j['titre'] as String?) ?? '',
+        description: (j['description'] as String?) ?? '',
+        date: DateTime.parse(j['date'] as String),
+        patientId: (j['patient_id'] as num?)?.toInt(),
+        niveau: switch (j['niveau']) {
+          'eleve' => NiveauAlerte.eleve,
+          'moyen' => NiveauAlerte.moyen,
+          'faible' => NiveauAlerte.faible,
+          _ => NiveauAlerte.aucune,
+        },
+        rdvDate: j['rdv_date'] == null
+            ? null
+            : DateTime.parse(j['rdv_date'] as String),
+        lu: j['lu'] == true,
+      );
 }
