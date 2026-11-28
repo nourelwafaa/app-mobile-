@@ -6,7 +6,10 @@ import 'package:lupus_plus/features/medecin/alerts/alertes_page.dart';
 import 'package:lupus_plus/features/medecin/messages/chat_page.dart';
 import 'package:lupus_plus/models/notification_medecin.dart';
 import 'package:lupus_plus/models/patient.dart';
+import 'package:lupus_plus/providers/auth_provider.dart';
+import 'package:lupus_plus/services/espace_medecin_service.dart';
 import 'package:lupus_plus/services/medecin_service.dart';
+import 'package:provider/provider.dart';
 
 // The notifications page, grouped by day.
 class NotificationsPage extends StatefulWidget {
@@ -20,7 +23,7 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final MedecinService _service = MedecinService();
+  late final EspaceMedecinService _service; // backend (séance 8)
 
   List<NotificationMedecin> _notifications = [];
   bool _chargement = true;
@@ -29,6 +32,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
+    _service = EspaceMedecinService(context.read<AuthProvider>().api);
     _charger();
     // Reload when a notification is read.
     MedecinService.notificationsChanged.addListener(_charger);
@@ -60,12 +64,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   // Tap on a row: marks it read, then opens what it is about.
   Future<void> _ouvrir(NotificationMedecin n) async {
-    await _service.marquerNotificationLue(n.id);
+    if (!n.lu) {
+      try {
+        await _service.marquerNotificationLue(n.id);
+        setState(() => n.lu = true);
+        // Recharge le point de la cloche sur l'accueil
+        MedecinService.notificationsChanged.value++;
+      } catch (_) {
+        // Pas grave : on ouvre quand même ce qui est concerné.
+      }
+    }
     if (!mounted) return;
 
     switch (n.type) {
       case TypeNotification.message:
-        final patient = await _service.getPatient(n.patientId!);
+        final id = n.patientId;
+        if (id == null) return;
+        final patient = await _service.getPatient(id);
         if (patient == null || !mounted) return;
         // Full screen, like the chat opened from the messages list.
         Navigator.of(context, rootNavigator: true).push(
@@ -80,6 +95,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
         // Back to the Accueil first, so it is clean when the doctor returns.
         Navigator.of(context).popUntil((route) => route.isFirst);
         widget.onOuvrirAgenda(jour);
+    }
+  }
+
+  // « Tout marquer comme lu »
+  Future<void> _toutMarquerLu() async {
+    try {
+      await _service.marquerToutesLues();
+      // La page et le point de la cloche se rechargent.
+      MedecinService.notificationsChanged.value++;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.erreurChargement)),
+      );
     }
   }
 
@@ -292,7 +321,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: _service.marquerToutesLues,
+                  onTap: _toutMarquerLu,
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                     child: Text(

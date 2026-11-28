@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const { normaliserTelephone, telephoneValide } = require("../utils/validation");
+const { nombreNonLues } = require("./notificationsController");
 
 // Espace médecin (séance 6) : ses patients, la recherche et l'ajout d'un patient.
 
@@ -267,6 +268,14 @@ exports.accueil = async (req, res) => {
         );
         const c = compteurs.rows[0];
 
+        // Point de la cloche (séance 8). Si la table n'est pas encore à jour (script 10), 0.
+        let notificationsNonLues = 0;
+        try {
+            notificationsNonLues = await nombreNonLues(medecinId);
+        } catch (e) {
+            console.error("Notifications indisponibles :", e.message);
+        }
+
         let amelioration = 0;
         if (c.douleur_actuelle !== null && c.douleur_precedente) {
             amelioration = Math.round(((c.douleur_precedente - c.douleur_actuelle) / c.douleur_precedente) * 100);
@@ -287,6 +296,7 @@ exports.accueil = async (req, res) => {
             amelioration_moyenne: amelioration,
             prochain_rdv: c.prochain_rdv,
             messages_non_lus: c.messages_non_lus,
+            notifications_non_lues: notificationsNonLues,
             patients_recents: recents.rows
         });
     } catch (error) {

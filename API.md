@@ -622,6 +622,8 @@ Erreur : **404** (« Alerte introuvable », ou alerte d'un patient non suivi)
   "rendez_vous_a_venir": 2,
   "amelioration_moyenne": 12,
   "prochain_rdv": "2026-11-27",
+  "messages_non_lus": 1,
+  "notifications_non_lues": 2,
   "patients_recents": [ { "id": 1, "nom": "Sarah Benali", "...": "même format qu'au §14" } ]
 }
 ```
@@ -630,6 +632,7 @@ Erreur : **404** (« Alerte introuvable », ou alerte d'un patient non suivi)
 - `amelioration_moyenne` : baisse (en %) de la douleur moyenne des patients suivis, 7 derniers jours comparés aux 7 jours d'avant. Négatif si la douleur augmente, `0` s'il n'y a pas assez de données.
 - `prochain_rdv` : jour du prochain RDV planifié (`null` s'il n'y en a pas) — bouton « RDV à venir » → ouvre l'agenda ce jour-là
 - `patients_recents` : les 3 patients les plus récemment actifs
+- `messages_non_lus` / `notifications_non_lues` : points rouges des icônes Messages et cloche (§30, §34)
 
 ## 26. Profil du médecin
 
@@ -777,3 +780,67 @@ Erreurs : **400** (message vide ou trop long), **404** (« Patient introuvable p
 
 Réponse **200** : `"message": "Demande acceptée : ce médecin vous suit maintenant"` (ou `"Demande refusée"`) + `id`, `statut`
 Erreurs : **400** (décision invalide), **404** (« Demande introuvable ou déjà traitée »)
+
+## 34. Notifications du médecin
+
+`GET /api/medecin/notifications` — token obligatoire, rôle médecin
+Écran : cloche de l'accueil médecin → page « Notifications »
+
+```json
+{
+  "message": "Notifications",
+  "non_lues": 2,
+  "notifications": [
+    {
+      "id": 4,
+      "type": "message",
+      "titre": "Nouveau message",
+      "description": "Sarah Benali : J'ai pris les 3 médicaments",
+      "date": "2026-11-28T09:07:00",
+      "lu": false,
+      "patient_id": 1,
+      "niveau": null,
+      "rdv_date": null
+    },
+    {
+      "id": 5,
+      "type": "alerte",
+      "titre": "Nouvelle alerte",
+      "description": "Sarah Benali : Douleur signalée à 9/10 dans le suivi du jour.",
+      "date": "2026-11-28T08:40:00",
+      "lu": false,
+      "patient_id": 1,
+      "niveau": "eleve",
+      "rdv_date": null
+    },
+    {
+      "id": 6,
+      "type": "rendez_vous",
+      "titre": "Rendez-vous dans 1 heure",
+      "description": "Sarah Benali · Contrôle à 11:00",
+      "date": "2026-11-28T10:00:00",
+      "lu": true,
+      "patient_id": 1,
+      "niveau": null,
+      "rdv_date": "2026-11-28T11:00:00"
+    }
+  ]
+}
+```
+
+- Créées automatiquement par le serveur (pas de route pour en créer) :
+  - `message` : un patient suivi a écrit au médecin (7 derniers jours)
+  - `alerte` : alerte d'un patient suivi (7 derniers jours) ; `niveau` = `faible` | `moyen` | `eleve`
+  - `rendez_vous` : RDV planifié qui commence dans moins de `rappel_minutes` (60 par défaut) ; `rdv_date` = date du RDV (ouvre l'Agenda ce jour-là)
+- Une notification devient lue toute seule quand le message est lu dans la discussion ou quand l'alerte est traitée
+- Les 50 plus récentes des 30 derniers jours, la plus récente d'abord
+
+### Marquer une notification lue
+
+`PUT /api/medecin/notifications/:id/lue` — body vide
+Réponse **200** : `"message": "Notification lue"` + `id` — **404** si ce n'est pas une notification du médecin
+
+### Tout marquer comme lu
+
+`PUT /api/medecin/notifications/lues` — body vide
+Réponse **200** : `"message": "Toutes les notifications sont lues"` + `nombre`

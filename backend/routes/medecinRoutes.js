@@ -6,6 +6,7 @@ const agendaController = require("../controllers/agendaController");
 const dossierController = require("../controllers/dossierController");
 const medecinController = require("../controllers/medecinController");
 const messagesController = require("../controllers/messagesController");
+const notificationsController = require("../controllers/notificationsController");
 
 // Toutes ces routes : connecté + rôle médecin
 router.use(verifierToken, autoriserRoles("medecin"));
@@ -34,6 +35,12 @@ router.put("/profil", medecinController.majProfil);
 router.get("/conversations", messagesController.conversations);
 router.get("/messages/:patientId", messagesController.messagesAvecPatient);
 router.post("/messages/:patientId", messagesController.ecrireAuPatient);
+
+// Notifications : messages, alertes, rendez-vous bientôt (séance 8)
+// (« /notifications/lues » avant « /notifications/:id/lue »)
+router.get("/notifications", notificationsController.mesNotifications);
+router.put("/notifications/lues", notificationsController.marquerToutesLues);
+router.put("/notifications/:id/lue", notificationsController.marquerLue);
 
 // Agenda : rendez-vous + analyses (séance 4)
 router.get("/rendez-vous", agendaController.agendaMedecin);
